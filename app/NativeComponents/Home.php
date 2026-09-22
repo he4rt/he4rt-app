@@ -29,6 +29,11 @@ class Home extends NativeComponent
         $this->status = 'error';
     }
 
+    public function navTitle(): string
+    {
+        return 'He4rt';
+    }
+
     public function render(): View
     {
         return view('native.home');
