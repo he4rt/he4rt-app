@@ -3,7 +3,6 @@
 .env
 .env.backup
 .env.production
-.claude/settings.local.json
 .phpactor.json
 .phpunit.result.cache
 .pint.result.cache
@@ -27,3 +26,38 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# === AI Agents ===
+# Auto-generated and auto-updated by `php artisan boost:install` / `boost:update`.
+# Kept local, never committed.
+
+# Laravel Boost
+boost.json
+.mcp.json
+
+# Claude Code
+CLAUDE.md
+.claude/
+
+# Generic AI Agents
+AGENTS.md
+GEMINI.md
+QWEN.md
+.ai/
+.junie/
+
+# Cursor AI
+.cursor/
+.cursorrules
+.cursorignore
+
+# Windsurf Editor
+.windsurf/
+.windsurfrc
+
+# GitHub Copilot
+.github/copilot-instructions.md
+
+# Codex
+.codex
+/.codex
