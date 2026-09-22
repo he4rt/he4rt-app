@@ -29,35 +29,59 @@ Thumbs.db
 
 # === AI Agents ===
 # Auto-generated and auto-updated by `php artisan boost:install` / `boost:update`.
+# Every path a Laravel Boost agent writes (guidelines, MCP config, skills).
 # Kept local, never committed.
 
 # Laravel Boost
 boost.json
-.mcp.json
 
-# Claude Code
-CLAUDE.md
-.claude/
-
-# Generic AI Agents
+# Shared guidelines / skills
 AGENTS.md
 GEMINI.md
 QWEN.md
 .ai/
-.junie/
+
+# Claude Code
+CLAUDE.md
+.mcp.json
+.claude/
+
+# Codex
+.codex/
 
 # Cursor AI
 .cursor/
 .cursorrules
 .cursorignore
 
+# GitHub Copilot (mcp.json lands in .vscode/, already ignored above)
+.github/copilot-instructions.md
+
+# JetBrains Junie
+.junie/
+
+# Amp
+.amp/
+
+# Pi
+.pi/
+
+# Grok Build
+.grok/
+
+# Factory Droid
+.factory/
+
+# Antigravity
+.agents/
+
+# Kiro
+.kiro/
+
+# OpenCode
+opencode.json
+opencode.jsonc
+
 # Windsurf Editor
 .windsurf/
 .windsurfrc
-
-# GitHub Copilot
-.github/copilot-instructions.md
-
-# Codex
-.codex
-/.codex
