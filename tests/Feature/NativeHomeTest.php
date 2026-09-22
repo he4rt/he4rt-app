@@ -15,7 +15,7 @@ it('shows the username after a successful API call', function () {
         '*/api/mobile/me' => Http::response(['id' => '1', 'username' => 'danielhe4rt']),
     ]);
 
-    Native::visit('/')->assertSee('Pong, danielhe4rt!');
+    Native::visit('/home')->assertSee('Pong, danielhe4rt!');
 });
 
 it('shows an error state when the API call fails', function () {
@@ -23,5 +23,5 @@ it('shows an error state when the API call fails', function () {
         '*/api/mobile/me' => Http::response(null, 401),
     ]);
 
-    Native::visit('/')->assertSee('Falha ao chamar a API');
+    Native::visit('/home')->assertSee('Falha ao chamar a API');
 });
