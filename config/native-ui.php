@@ -8,10 +8,8 @@ declare(strict_types=1);
  * Published via `php artisan vendor:publish --tag=native-ui-config`.
  * Edit to customize your app's visual identity in one place.
  *
- * For dynamic per-tenant theming, use Nativephp\NativeUi\Theme::merge([...])
+ * For dynamic per-tenant theming, use Native\Mobile\UI\Theme::merge([...])
  * from a service provider. Runtime merges deep-merge on top of these values.
- *
- * Decision log: /docs/NATIVE-UI-REWRITE-PLAN.md (D — theme layer)
  */
 
 return [
@@ -21,10 +19,18 @@ return [
     | Theme
     |---------------------------------------------------------------------------
     |
-    | 17 color tokens, 4 radii, 4 font sizes, font family.
+    | Color tokens (open-ended map), 4 radii, 4 font sizes, font family.
     |
     | "on-X" means "color of content placed ON a surface of color X"
     |   — i.e., text/icons on that background.
+    |
+    | The token map is OPEN-ENDED: add any key your design needs (e.g. a
+    | `warning` pair) to both blocks and `bg-theme-warning` /
+    | `text-theme-on-warning` / `border-theme-warning` resolve immediately.
+    | Theme classes also accept opacity modifiers — `bg-theme-primary/15`
+    | is the tonal-fill idiom (the alpha applies to the dark companion
+    | too). In PHP (layout chrome builders, dynamic styling) read tokens
+    | with the appearance-aware `theme()` helper: `theme('primary')`.
     |
     | Color tokens accept:
     |   - CSS hex: '#B91C1C', '#F00', or with alpha '#8B5CF680' (#RRGGBBAA)
@@ -36,6 +42,9 @@ return [
     |
     | The default pairs meet WCAG AA (4.5:1) — if you customize, keep each
     | `on-*` color at 4.5:1 contrast against its background token.
+    |
+    | TODO: trocar pelas cores oficiais da marca He4rt quando definidas —
+    | por enquanto os tokens são os padrões do pacote nativephp/mobile-ui.
     |
     */
 
@@ -62,11 +71,17 @@ return [
             'on-surface-variant' => '#706F6C',
 
             // Outline = neutral borders (text fields, dividers, cards).
+            // outline-variant = softer edges: hairline dividers, card seams.
             'outline' => '#E5E5E5',
+            'outline-variant' => '#EFEFEF',
 
             // Destructive actions — maps to `variant="destructive"` on components.
             'destructive' => '#B91C1C',
             'on-destructive' => '#FFFFFF',
+
+            // Success / "safe to proceed" — confirmations, verified badges.
+            'success' => '#15803D',
+            'on-success' => '#FFFFFF',
 
             // Tertiary accent — for highlights, badges, emphasis not covered by primary.
             'accent' => '#C2410C',
@@ -91,9 +106,13 @@ return [
             'on-surface-variant' => '#A1A09A',
 
             'outline' => '#3E3E3A',
+            'outline-variant' => '#2A2A28',
 
             'destructive' => '#F87171',
             'on-destructive' => '#0F172A',
+
+            'success' => '#4ADE80',
+            'on-success' => '#052E16',
 
             'accent' => '#FDBA74',
             'on-accent' => '#0F172A',
@@ -112,10 +131,28 @@ return [
         'font-xl' => 24,
     ],
 
+    /*
+    |---------------------------------------------------------------------------
+    | Fonts
+    |---------------------------------------------------------------------------
+    |
+    | Semantic names for bundled fonts (resources/fonts/ file tokens, minus
+    | the extension). Use an alias anywhere a font token works — the `font`
+    | attribute (`font="accent"`), chrome ->font() builders, or the layout
+    | $font property. The `default` alias is the app-wide default font:
+    | 'System' resolves to the platform face (San Francisco on iOS, Roboto
+    | on Android); set a bundled token to apply it everywhere. Download one
+    | with `php artisan native:font Inter --default`.
+    |
+    |   'fonts' => [
+    |       'default' => 'Inter-Regular',
+    |       'accent'  => 'DynaPuff-Regular',
+    |   ],
+    |
+    */
+
     'fonts' => [
         'default' => 'System',
-        'accent' => 'Archivo+Black-Regular',
-        'lobster' => 'Lobster+Two-Regular',
     ],
 
 ];

@@ -2,8 +2,13 @@
 
 declare(strict_types=1);
 
+use App\NativeComponents\Home;
 use Illuminate\Support\Facades\Http;
 use Native\Mobile\Testing\Native;
+
+it('sets the nav title', function () {
+    expect((new Home)->navTitle())->toBe('He4rt');
+});
 
 it('shows the username after a successful API call', function () {
     Http::fake([
