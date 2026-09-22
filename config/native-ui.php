@@ -10,6 +10,10 @@ declare(strict_types=1);
  *
  * For dynamic per-tenant theming, use Native\Mobile\UI\Theme::merge([...])
  * from a service provider. Runtime merges deep-merge on top of these values.
+ *
+ * Portado do design system oficial do He4rt (heartdevs.com,
+ * app-modules/he4rt/resources/css/support/themes.css) — não são
+ * placeholders, são os tokens reais usados no portal/painel web.
  */
 
 return [
@@ -43,85 +47,78 @@ return [
     | The default pairs meet WCAG AA (4.5:1) — if you customize, keep each
     | `on-*` color at 4.5:1 contrast against its background token.
     |
-    | TODO: trocar pelas cores oficiais da marca He4rt quando definidas —
-    | por enquanto os tokens são os padrões do pacote nativephp/mobile-ui.
-    |
     */
 
     'theme' => [
 
         'light' => [
-            // Primary brand color — used for filled buttons, active states, key accents.
-            'primary' => '#0F766E',
+            // Primary/secondary do He4rt são fixos entre os dois temas
+            // (themes.css não os sobrescreve no bloco .dark).
+            'primary' => '#782BF1',
             'on-primary' => '#FFFFFF',
 
-            // Secondary / muted action color.
-            'secondary' => '#475569',
+            'secondary' => '#9828BD',
             'on-secondary' => '#FFFFFF',
 
-            // Surface = cards, sheets, dialogs. Background = page root.
-            'surface' => '#FFFFFF',
-            'on-surface' => '#1B1B18',
-            'background' => '#FAFAFA',
-            'on-background' => '#1B1B18',
+            // Surface = elevation-01dp (cards/sheets). Background = elevation-surface (raiz).
+            'surface' => '#F7F8FC',
+            'on-surface' => '#09090A',
+            'background' => '#FBFBFF',
+            'on-background' => '#09090A',
 
-            // Surface variant = filled text fields, muted tonal surfaces.
-            // on-surface-variant = muted label/hint text on those surfaces.
-            'surface-variant' => '#FAFAFA',
-            'on-surface-variant' => '#706F6C',
+            'surface-variant' => '#F2F4FA',
+            'on-surface-variant' => '#4F4F4F',
 
-            // Outline = neutral borders (text fields, dividers, cards).
-            // outline-variant = softer edges: hairline dividers, card seams.
-            'outline' => '#E5E5E5',
-            'outline-variant' => '#EFEFEF',
+            // outline-medium / outline-low do design system.
+            'outline' => '#70707A',
+            'outline-variant' => '#909098',
 
-            // Destructive actions — maps to `variant="destructive"` on components.
-            'destructive' => '#B91C1C',
+            // helper-error (red-300).
+            'destructive' => '#FC3A38',
             'on-destructive' => '#FFFFFF',
 
-            // Success / "safe to proceed" — confirmations, verified badges.
-            'success' => '#15803D',
+            // helper-success (green-300).
+            'success' => '#00CD0F',
             'on-success' => '#FFFFFF',
 
-            // Tertiary accent — for highlights, badges, emphasis not covered by primary.
-            'accent' => '#C2410C',
-            'on-accent' => '#FFFFFF',
+            // cyan-primary — usado nos números/stats do terminal da home.
+            'accent' => '#12E4D9',
+            'on-accent' => '#09090A',
         ],
 
         'dark' => [
-            // Leave empty or partial to auto-derive from `light` (luminance inversion).
-            // Specify any token here to override the derived value.
-            'primary' => '#14B8A6',
+            'primary' => '#782BF1',
             'on-primary' => '#FFFFFF',
 
-            'secondary' => '#94A3B8',
-            'on-secondary' => '#0F172A',
+            'secondary' => '#9828BD',
+            'on-secondary' => '#FFFFFF',
 
-            'surface' => '#161615',
-            'on-surface' => '#EDEDEC',
-            'background' => '#0A0A0A',
-            'on-background' => '#EDEDEC',
+            'surface' => '#0F0F10',
+            'on-surface' => '#FDFDFD',
+            'background' => '#09090A',
+            'on-background' => '#FDFDFD',
 
-            'surface-variant' => '#1F1F1E',
-            'on-surface-variant' => '#A1A09A',
+            'surface-variant' => '#131314',
+            'on-surface-variant' => '#9C9C9C',
 
-            'outline' => '#3E3E3A',
-            'outline-variant' => '#2A2A28',
+            'outline' => '#7C7C83',
+            'outline-variant' => '#2C2C2D',
 
-            'destructive' => '#F87171',
-            'on-destructive' => '#0F172A',
+            // helper-error (red-300) — mesmo valor do light, o design system não varia.
+            'destructive' => '#FC3A38',
+            'on-destructive' => '#09090A',
 
-            'success' => '#4ADE80',
-            'on-success' => '#052E16',
+            'success' => '#00CD0F',
+            'on-success' => '#09090A',
 
-            'accent' => '#FDBA74',
-            'on-accent' => '#0F172A',
+            'accent' => '#12E4D9',
+            'on-accent' => '#09090A',
         ],
 
-        // Corner radii (points / dp).
-        'radius-sm' => 4,
-        'radius-md' => 8,
-        'radius-lg' => 16,
+        // Corner radii do He4rt: --border-radius-{sm,md,lg,pill}.
+        'radius-sm' => 8,
+        'radius-md' => 16,
+        'radius-lg' => 24,
         'radius-full' => 9_999,
 
         // Font size scale (points / sp).
@@ -136,23 +133,20 @@ return [
     | Fonts
     |---------------------------------------------------------------------------
     |
-    | Semantic names for bundled fonts (resources/fonts/ file tokens, minus
-    | the extension). Use an alias anywhere a font token works — the `font`
-    | attribute (`font="accent"`), chrome ->font() builders, or the layout
-    | $font property. The `default` alias is the app-wide default font:
-    | 'System' resolves to the platform face (San Francisco on iOS, Roboto
-    | on Android); set a bundled token to apply it everywhere. Download one
-    | with `php artisan native:font Inter --default`.
-    |
-    |   'fonts' => [
-    |       'default' => 'Inter-Regular',
-    |       'accent'  => 'DynaPuff-Regular',
-    |   ],
+    | Satoshi (sans) e Fira Code (mono) são as duas famílias do design system
+    | web — convertidas de app-modules/he4rt/resources/fonts/ (woff2 → ttf via
+    | woff2_decompress) pra resources/fonts/ deste projeto. "Cal-Sans" também
+    | existe como token no CSS do site, mas não tem arquivo de fonte versionado
+    | lá — não foi portado.
     |
     */
 
     'fonts' => [
-        'default' => 'System',
+        'default' => 'Satoshi-Regular',
+        'medium' => 'Satoshi-Medium',
+        'bold' => 'Satoshi-Bold',
+        'mono' => 'FiraCode-Regular',
+        'mono-medium' => 'FiraCode-Medium',
     ],
 
 ];
