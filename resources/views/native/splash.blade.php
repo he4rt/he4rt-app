@@ -1,27 +1,36 @@
 <column class="w-full h-full items-center justify-center gap-6 bg-theme-background safe-area">
-    <stack class="h-56 w-56 items-center justify-center">
-        <canvas class="h-56 w-56">
-            <stack class="flex-1 items-center justify-center">
-                <circle
-                    :width="176" :height="176"
-                    class="bg-theme-primary opacity-20 rounded-full"
-                    :scale="1.3" animate-loop :animate-duration="1800" animate-easing="ease-in-out"
-                />
-                <circle
-                    :width="140" :height="140"
-                    class="bg-theme-primary opacity-10 rounded-full"
-                    :scale="1.45" animate-loop :animate-duration="1800" animate-easing="ease-in-out"
-                />
-            </stack>
-        </canvas>
+    <stack class="w-[240] h-[208] items-center justify-center">
+        <image :src="public_path('images/he4rt-hero-trace.png')" :width="240" :height="208" alt="" />
 
-        <image
-            :src="public_path('images/he4rt-mark.png')"
-            :width="88" :height="75"
-            :tint-color="theme('primary')"
-            alt="He4rt"
-            :scale="1.06" animate-loop :animate-duration="900" animate-easing="ease-in-out"
-        />
+        <stack class="items-center justify-center">
+            <circle
+                :width="28" :height="28"
+                class="bg-theme-primary opacity-25 rounded-full"
+                :translate-x="$ledAX" :translate-y="$ledAY"
+                :animate-duration="54" animate-easing="linear"
+            />
+            <circle
+                :width="12" :height="12"
+                class="bg-theme-primary rounded-full"
+                :translate-x="$ledAX" :translate-y="$ledAY"
+                :animate-duration="54" animate-easing="linear"
+            />
+        </stack>
+
+        <stack class="items-center justify-center">
+            <circle
+                :width="28" :height="28"
+                class="bg-theme-primary opacity-25 rounded-full"
+                :translate-x="$ledBX" :translate-y="$ledBY"
+                :animate-duration="54" animate-easing="linear"
+            />
+            <circle
+                :width="12" :height="12"
+                class="bg-theme-primary rounded-full"
+                :translate-x="$ledBX" :translate-y="$ledBY"
+                :animate-duration="54" animate-easing="linear"
+            />
+        </stack>
     </stack>
 
     <text class="text-lg text-theme-on-surface-variant" font="medium">He4rt Devs</text>
