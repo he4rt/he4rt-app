@@ -16,13 +16,7 @@
             justify-content: center;
         }
 
-        /*
-         * A partir daqui é o mesmo CSS de
-         * app-modules/portal/resources/views/components/animated-logo.blade.php
-         * (heartdevs.com), verbatim — só a definição de --primary muda de
-         * var(--primary) pra um valor fixo, já que esta página não carrega
-         * o design system do site.
-         */
+        /* CSS de animated-logo.blade.php (heartdevs.com), verbatim. */
         .he4rt-logo {
             line-height: 0;
             width: 240px;

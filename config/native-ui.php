@@ -11,9 +11,7 @@ declare(strict_types=1);
  * For dynamic per-tenant theming, use Native\Mobile\UI\Theme::merge([...])
  * from a service provider. Runtime merges deep-merge on top of these values.
  *
- * Portado do design system oficial do He4rt (heartdevs.com,
- * app-modules/he4rt/resources/css/support/themes.css) — não são
- * placeholders, são os tokens reais usados no portal/painel web.
+ * Valores portados de heartdevs.com/app-modules/he4rt/.../themes.css.
  */
 
 return [
