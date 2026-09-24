@@ -84,6 +84,11 @@ return [
             // cyan-primary — usado nos números/stats do terminal da home.
             'accent' => '#12E4D9',
             'on-accent' => '#09090A',
+
+            // Fundo fixo (mesmo valor nos dois temas) pra telas com
+            // identidade de marca deliberadamente escura — ex.: a splash.
+            'splash-background' => '#09090A',
+            'on-splash-background' => '#9C9C9C',
         ],
 
         'dark' => [
@@ -113,6 +118,9 @@ return [
 
             'accent' => '#12E4D9',
             'on-accent' => '#09090A',
+
+            'splash-background' => '#09090A',
+            'on-splash-background' => '#9C9C9C',
         ],
 
         // Corner radii do He4rt: --border-radius-{sm,md,lg,pill}.

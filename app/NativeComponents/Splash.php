@@ -20,7 +20,11 @@ class Splash extends NativeComponent
 {
     private const int LAP_MS = 2_600;
 
-    #[Poll(self::LAP_MS)]
+    // Duas voltas completas antes de trocar de tela — corta num ponto
+    // "parado" do ciclo em vez de no meio de uma volta.
+    private const int DISPLAY_MS = self::LAP_MS * 2;
+
+    #[Poll(self::DISPLAY_MS)]
     public function finish(): void
     {
         $this->replace('/home');
