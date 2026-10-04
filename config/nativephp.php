@@ -52,9 +52,13 @@ return [
     | example, using the scheme "nativephp" allows links like:
     | nativephp://some/path to open the app directly.
     |
+    | Must match the heartdevs.com API's `services.he4rt_app.deeplink_scheme`
+    | (HE4RT_APP_DEEPLINK_SCHEME) — that's where the OAuth login redirect
+    | (he4rtapp://oauth/callback?code=...) is built.
+    |
     */
 
-    'deeplink_scheme' => env('NATIVEPHP_DEEPLINK_SCHEME'),
+    'deeplink_scheme' => env('NATIVEPHP_DEEPLINK_SCHEME', 'he4rtapp'),
 
     /*
     |--------------------------------------------------------------------------
