@@ -49,17 +49,20 @@ class Home extends NativeComponent
      * de comunidade dev. Vem de docs/plans/2026-09-22-api-mobile-jwt.md
      * (feature "Timeline").
      *
-     * @var array{author: string, timeAgo: string, body: string, codeFile: string, codeLang: string, codeLines: list<string>, tags: list<string>, likes: int, comments: int}
+     * @var array{author: string, role: ?string, timeAgo: string, body: string, code: ?array{file: string, lang: string, lines: list<string>}, tags: list<string>, likes: int, comments: int}
      */
     public array $featuredPost = [
         'author' => 'time He4rt',
+        'role' => 'CORE',
         'timeAgo' => 'há 2h',
         'body' => 'Refatoramos o pool de conexões do Postgres no gateway da API do heartdevs.com.',
-        'codeFile' => 'config/database.php',
-        'codeLang' => 'php',
-        'codeLines' => [
-            "'pool' => ['min' => 5, 'max' => 50],",
-            '// timeout ajustado pra reduzir o P99',
+        'code' => [
+            'file' => 'config/database.php',
+            'lang' => 'php',
+            'lines' => [
+                "'pool' => ['min' => 5, 'max' => 50],",
+                '// timeout ajustado pra reduzir o P99',
+            ],
         ],
         'tags' => ['#backend', '#postgres', '#performance'],
         'likes' => 84,
