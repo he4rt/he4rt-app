@@ -13,10 +13,21 @@ it('shows the wordmark', function () {
     Native::visit('/')->assertSee('He4rt Devs');
 });
 
-it('replaces itself with home once the poll fires', function () {
+it('replaces itself with home when a token is already stored', function () {
+    $bridge = fakeSecureStorage();
+    $bridge->respondTo('SecureStorage.Get', fn (array $params) => $params['key'] === 'he4rt_access_token'
+        ? ['value' => 'stored-token']
+        : ['value' => null]);
+
     Native::visit('/')
         ->firePoll('finish')
         ->assertReplacedWith('/home');
+});
+
+it('replaces itself with login when there is no stored token', function () {
+    Native::visit('/')
+        ->firePoll('finish')
+        ->assertReplacedWith('/login');
 });
 
 it('serves the animated logo html the webview embeds', function () {

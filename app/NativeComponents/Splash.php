@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\NativeComponents;
 
+use App\Support\AuthTokenStore;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\Poll;
 use Native\Mobile\Edge\NativeComponent;
@@ -18,7 +19,10 @@ class Splash extends NativeComponent
     #[Poll(self::DISPLAY_MS)]
     public function finish(): void
     {
-        $this->replace('/home');
+        // Só checa se existe um token salvo — validade de verdade é
+        // responsabilidade de quem chama a API (ver Perfil::loadProfile()),
+        // que tenta refresh e só então desloga.
+        $this->replace((new AuthTokenStore)->hasToken() ? '/home' : '/login');
     }
 
     public function navTitle(): string
