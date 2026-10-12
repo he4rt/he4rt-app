@@ -79,4 +79,16 @@ final class He4rtApi
             'content' => $content,
         ]);
     }
+
+    /** Idempotent — liking an already-liked post has no effect. */
+    public function likePost(string $token, string $postId): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->post("/api/mobile/timeline/{$postId}/like");
+    }
+
+    /** Idempotent — unliking a post that isn't liked has no effect. */
+    public function unlikePost(string $token, string $postId): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->delete("/api/mobile/timeline/{$postId}/like");
+    }
 }

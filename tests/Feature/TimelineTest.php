@@ -250,3 +250,82 @@ it('refreshes an expired token and retries the reply', function () {
 
     expect((new AuthTokenStore)->token())->toBe('new-token');
 });
+
+it('likes a post and shows the server-confirmed count', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    $postId = '0199a1b2-3c4d-7e5f-8a6b-1234567890ab';
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response([
+            'data' => [fakeTimelinePost(['id' => $postId, 'likes_count' => 12, 'liked_by_me' => false])],
+        ]),
+        "*/api/mobile/timeline/{$postId}/like" => Http::response(['likes_count' => 13, 'liked_by_me' => true]),
+    ]);
+
+    Native::visit('/timeline')
+        ->assertSee('12')
+        ->press("toggleLike('{$postId}')")
+        ->assertSee('13');
+});
+
+it('unlikes an already-liked post', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    $postId = '0199a1b2-3c4d-7e5f-8a6b-1234567890ab';
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response([
+            'data' => [fakeTimelinePost(['id' => $postId, 'likes_count' => 13, 'liked_by_me' => true])],
+        ]),
+    ]);
+
+    $component = Native::visit('/timeline')->assertSee('13');
+
+    Http::fake([
+        "*/api/mobile/timeline/{$postId}/like" => Http::response(['likes_count' => 12, 'liked_by_me' => false]),
+    ]);
+
+    $component->press("toggleLike('{$postId}')")->assertSee('12');
+});
+
+it('leaves the like state untouched when the request fails', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    $postId = '0199a1b2-3c4d-7e5f-8a6b-1234567890ab';
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response([
+            'data' => [fakeTimelinePost(['id' => $postId, 'likes_count' => 12, 'liked_by_me' => false])],
+        ]),
+    ]);
+
+    $component = Native::visit('/timeline')->assertSee('12');
+
+    Http::fake([
+        "*/api/mobile/timeline/{$postId}/like" => Http::response(['message' => 'server error'], 500),
+    ]);
+
+    $component->press("toggleLike('{$postId}')")->assertSee('12');
+});
+
+it('bounces to login when liking fails to refresh an expired token', function () {
+    (new AuthTokenStore)->put('expired-token', 3_600);
+
+    $postId = '0199a1b2-3c4d-7e5f-8a6b-1234567890ab';
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response(['data' => [fakeTimelinePost(['id' => $postId])]]),
+    ]);
+
+    $component = Native::visit('/timeline')->assertSee('12');
+
+    Http::fake([
+        "*/api/mobile/timeline/{$postId}/like" => Http::response(['message' => 'expired'], 401),
+        '*/api/mobile/auth/refresh' => Http::response(['message' => 'expired'], 401),
+    ]);
+
+    $component->press("toggleLike('{$postId}')")->assertReplacedWith('/login');
+
+    expect((new AuthTokenStore)->token())->toBeNull();
+});

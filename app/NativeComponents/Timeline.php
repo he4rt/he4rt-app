@@ -21,7 +21,7 @@ class Timeline extends NativeComponent
     public bool $isLoadingMore = false;
 
     /**
-     * @var list<array{id: string, author: string, avatarUrl: ?string, timeAgo: string, content: string, image: ?string, repliesCount: int, reactionsCount: int}>
+     * @var list<array{id: string, author: string, avatarUrl: ?string, timeAgo: string, content: string, image: ?string, repliesCount: int, likesCount: int, likedByMe: bool}>
      */
     public array $posts = [];
 
@@ -166,6 +166,46 @@ class Timeline extends NativeComponent
         $this->cancelReply();
     }
 
+    public function toggleLike(string $postId): void
+    {
+        $post = $this->findPost($postId);
+
+        if ($post === null) {
+            return;
+        }
+
+        $token = (new AuthTokenStore)->token();
+
+        if ($token === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        $api = new He4rtApi;
+        $wasLiked = $post['likedByMe'];
+
+        $response = $this->withTokenRetry(
+            $token,
+            fn (string $t): Response => $wasLiked ? $api->unlikePost($t, $postId) : $api->likePost($t, $postId),
+        );
+
+        if ($response === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        if (!$response->successful()) {
+            return;
+        }
+
+        $this->updatePost($postId, [
+            'likesCount' => (int) $response->json('likes_count', $post['likesCount']),
+            'likedByMe' => (bool) $response->json('liked_by_me', !$wasLiked),
+        ]);
+    }
+
     public function navTitle(): string
     {
         return 'Timeline';
@@ -213,10 +253,27 @@ class Timeline extends NativeComponent
 
     private function bumpReplyCount(string $postId): void
     {
+        $this->updatePost($postId, [
+            'repliesCount' => $this->findPost($postId)['repliesCount'] + 1,
+        ]);
+    }
+
+    private function findPost(string $postId): ?array
+    {
+        foreach ($this->posts as $post) {
+            if ($post['id'] === $postId) {
+                return $post;
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array<string, mixed> $changes */
+    private function updatePost(string $postId, array $changes): void
+    {
         $this->posts = array_map(
-            fn (array $post): array => $post['id'] === $postId
-                ? [...$post, 'repliesCount' => $post['repliesCount'] + 1]
-                : $post,
+            fn (array $post): array => $post['id'] === $postId ? [...$post, ...$changes] : $post,
             $this->posts,
         );
     }
@@ -241,7 +298,8 @@ class Timeline extends NativeComponent
             'content' => $post['content'],
             'image' => $post['images'][0] ?? null,
             'repliesCount' => $post['replies_count'] ?? 0,
-            'reactionsCount' => $post['reactions_count'] ?? 0,
+            'likesCount' => $post['likes_count'] ?? 0,
+            'likedByMe' => $post['liked_by_me'] ?? false,
         ];
     }
 

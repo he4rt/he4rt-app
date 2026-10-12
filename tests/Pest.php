@@ -67,7 +67,8 @@ function fakeTimelinePost(array $overrides = []): array
         'root_id' => null,
         'parent_id' => null,
         'replies_count' => 3,
-        'reactions_count' => 12,
+        'likes_count' => 12,
+        'liked_by_me' => false,
         'created_at' => now()->subHour()->toIso8601String(),
     ], $overrides);
 }
