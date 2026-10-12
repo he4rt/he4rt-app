@@ -175,7 +175,7 @@ it('opens and closes the reply composer', function () {
     ]);
 
     $component = Native::visit('/timeline')
-        ->call('startReply', 42)
+        ->press('startReply(42)')
         ->assertSet('replyingToPostId', 42);
 
     $component->call('cancelReply')
@@ -194,7 +194,7 @@ it('submits a reply and bumps the visible replies count', function () {
     ]);
 
     Native::visit('/timeline')
-        ->call('startReply', 42)
+        ->press('startReply(42)')
         ->set('replyContent', 'Concordo!')
         ->call('submitReply')
         ->assertSet('replyingToPostId', null)
@@ -212,7 +212,7 @@ it('shows a validation error without closing the composer', function () {
     ]);
 
     Native::visit('/timeline')
-        ->call('startReply', 42)
+        ->press('startReply(42)')
         ->set('replyContent', 'x')
         ->call('submitReply')
         ->assertSet('replyingToPostId', 42)
@@ -235,7 +235,7 @@ it('refreshes an expired token and retries the reply', function () {
     ]);
 
     Native::visit('/timeline')
-        ->call('startReply', 42)
+        ->press('startReply(42)')
         ->set('replyContent', 'Concordo!')
         ->call('submitReply')
         ->assertSet('replyingToPostId', null);
