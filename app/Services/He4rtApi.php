@@ -55,4 +55,40 @@ final class He4rtApi
     {
         return Http::withToken($token)->baseUrl($this->baseUrl)->get('/api/mobile/me');
     }
+
+    /**
+     * Root timeline posts, newest first. Pass the previous response's
+     * `links.next` as $url to fetch the following page.
+     */
+    public function timeline(string $token, ?string $url = null): Response
+    {
+        if ($url !== null) {
+            return Http::withToken($token)->get($url);
+        }
+
+        return Http::withToken($token)->baseUrl($this->baseUrl)->get('/api/mobile/timeline');
+    }
+
+    /**
+     * Reply to a root post. Content validation (required, max 5000 chars)
+     * happens server-side.
+     */
+    public function replyToPost(string $token, string $postId, string $content): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->post("/api/mobile/timeline/{$postId}/replies", [
+            'content' => $content,
+        ]);
+    }
+
+    /** Idempotent — liking an already-liked post has no effect. */
+    public function likePost(string $token, string $postId): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->post("/api/mobile/timeline/{$postId}/like");
+    }
+
+    /** Idempotent — unliking a post that isn't liked has no effect. */
+    public function unlikePost(string $token, string $postId): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->delete("/api/mobile/timeline/{$postId}/like");
+    }
 }

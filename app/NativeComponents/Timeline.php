@@ -4,102 +4,206 @@ declare(strict_types=1);
 
 namespace App\NativeComponents;
 
+use App\Services\He4rtApi;
+use App\Support\AuthTokenStore;
+use Closure;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
 
 class Timeline extends NativeComponent
 {
-    public string $activeFilter = 'todos';
+    public string $status = 'loading';
+
+    public ?string $nextPageUrl = null;
+
+    public bool $isLoadingMore = false;
 
     /**
-     * Mock — a Timeline real vem de docs/plans/2026-09-22-api-mobile-jwt.md
-     * no heartdevs.com (feature "Timeline"), ainda não existe API pra isso.
-     *
-     * @var list<array{author: string, role: ?string, timeAgo: string, body: string, code: ?array{file: string, lang: string, lines: list<string>}, tags: list<string>, likes: int, comments: int, category: string}>
+     * @var list<array{id: string, author: string, avatarUrl: ?string, timeAgo: string, content: string, image: ?string, repliesCount: int, likesCount: int, likedByMe: bool}>
      */
-    public array $posts = [
-        [
-            'author' => 'time He4rt',
-            'role' => 'CORE',
-            'timeAgo' => 'há 2h',
-            'body' => 'Refatoramos o pool de conexões do Postgres no gateway da API do heartdevs.com.',
-            'code' => [
-                'file' => 'config/database.php',
-                'lang' => 'php',
-                'lines' => [
-                    "'pool' => ['min' => 5, 'max' => 50],",
-                    '// timeout ajustado pra reduzir o P99',
-                ],
-            ],
-            'tags' => ['#backend', '#postgres', '#performance'],
-            'likes' => 84,
-            'comments' => 23,
-            'category' => 'projetos',
-        ],
-        [
-            'author' => 'maria.dev',
-            'role' => null,
-            'timeAgo' => 'há 5h',
-            'body' => 'A turma de mentoria de Setembro está com vagas abertas! Inscrições abertas até o dia 30.',
-            'code' => null,
-            'tags' => ['#mentoria', '#carreira'],
-            'likes' => 41,
-            'comments' => 12,
-            'category' => 'mentorias',
-        ],
-        [
-            'author' => 'time He4rt',
-            'role' => 'CORE',
-            'timeAgo' => 'ontem',
-            'body' => 'Como fomos de 0 a 9 mil devs na comunidade — um resumo da jornada até aqui.',
-            'code' => null,
-            'tags' => [],
-            'likes' => 156,
-            'comments' => 37,
-            'category' => 'geral',
-        ],
-        [
-            'author' => 'pedro.silva',
-            'role' => null,
-            'timeAgo' => 'há 2 dias',
-            'body' => 'Lancei meu primeiro projeto open source usando Laravel + Livewire. Feedback é bem-vindo.',
-            'code' => null,
-            'tags' => ['#laravel', '#livewire', '#opensource'],
-            'likes' => 62,
-            'comments' => 19,
-            'category' => 'projetos',
-        ],
-        [
-            'author' => 'time He4rt',
-            'role' => 'CORE',
-            'timeAgo' => 'há 3 dias',
-            'body' => 'A He4rt Conf 2025 está confirmada pra Outubro, com inscrições abertas em breve.',
-            'code' => null,
-            'tags' => ['#he4rtconf'],
-            'likes' => 203,
-            'comments' => 58,
-            'category' => 'eventos',
-        ],
-    ];
+    public array $posts = [];
 
-    public function setFilter(string $filter): void
+    /**
+     * Id (UUID) of the post the reply composer (bottom sheet) is open
+     * for, or null when closed. There's no endpoint to list a post's
+     * existing replies (POST/DELETE only) — composing one just bumps the
+     * visible count, it doesn't render into a thread.
+     */
+    public ?string $replyingToPostId = null;
+
+    public string $replyContent = '';
+
+    public bool $isSubmittingReply = false;
+
+    public ?string $replyError = null;
+
+    public function mount(): void
     {
-        $this->activeFilter = $filter;
+        $this->refresh();
     }
 
-    /**
-     * @return list<array{author: string, role: ?string, timeAgo: string, body: string, code: ?array{file: string, lang: string, lines: list<string>}, tags: list<string>, likes: int, comments: int, category: string}>
-     */
-    public function filteredPosts(): array
+    public function refresh(): void
     {
-        if ($this->activeFilter === 'todos') {
-            return $this->posts;
+        $token = (new AuthTokenStore)->token();
+
+        if ($token === null) {
+            $this->replace('/login');
+
+            return;
         }
 
-        return array_values(array_filter(
-            $this->posts,
-            fn (array $post): bool => $post['category'] === $this->activeFilter,
-        ));
+        $response = $this->fetchPage($token);
+
+        if ($response === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        if (!$response->successful()) {
+            $this->status = 'error';
+
+            return;
+        }
+
+        $this->status = 'ok';
+        $this->posts = $this->mapPosts($response->json('data', []));
+        $this->nextPageUrl = $response->json('links.next');
+    }
+
+    public function loadMore(): void
+    {
+        if ($this->nextPageUrl === null || $this->isLoadingMore) {
+            return;
+        }
+
+        $token = (new AuthTokenStore)->token();
+
+        if ($token === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        $this->isLoadingMore = true;
+        $response = $this->fetchPage($token, $this->nextPageUrl);
+        $this->isLoadingMore = false;
+
+        if ($response === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        if (!$response->successful()) {
+            return;
+        }
+
+        $this->posts = [...$this->posts, ...$this->mapPosts($response->json('data', []))];
+        $this->nextPageUrl = $response->json('links.next');
+    }
+
+    public function startReply(string $postId): void
+    {
+        $this->replyingToPostId = $postId;
+        $this->replyContent = '';
+        $this->replyError = null;
+    }
+
+    public function cancelReply(): void
+    {
+        $this->replyingToPostId = null;
+        $this->replyContent = '';
+        $this->replyError = null;
+    }
+
+    public function submitReply(): void
+    {
+        if ($this->replyingToPostId === null || mb_trim($this->replyContent) === '') {
+            return;
+        }
+
+        $token = (new AuthTokenStore)->token();
+
+        if ($token === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        $postId = $this->replyingToPostId;
+        $content = $this->replyContent;
+
+        $this->isSubmittingReply = true;
+        $this->replyError = null;
+
+        $api = new He4rtApi;
+        $response = $this->withTokenRetry($token, fn (string $t): Response => $api->replyToPost($t, $postId, $content));
+
+        $this->isSubmittingReply = false;
+
+        if ($response === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        if ($response->status() === 422) {
+            $this->replyError = $response->json('errors.content.0', 'Não foi possível enviar sua resposta.');
+
+            return;
+        }
+
+        if (!$response->successful()) {
+            $this->replyError = 'Não foi possível enviar sua resposta. Tente novamente.';
+
+            return;
+        }
+
+        $this->bumpReplyCount($postId);
+        $this->cancelReply();
+    }
+
+    public function toggleLike(string $postId): void
+    {
+        $post = $this->findPost($postId);
+
+        if ($post === null) {
+            return;
+        }
+
+        $token = (new AuthTokenStore)->token();
+
+        if ($token === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        $api = new He4rtApi;
+        $wasLiked = $post['likedByMe'];
+
+        $response = $this->withTokenRetry(
+            $token,
+            fn (string $t): Response => $wasLiked ? $api->unlikePost($t, $postId) : $api->likePost($t, $postId),
+        );
+
+        if ($response === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        if (!$response->successful()) {
+            return;
+        }
+
+        $this->updatePost($postId, [
+            'likesCount' => (int) $response->json('likes_count', $post['likesCount']),
+            'likedByMe' => (bool) $response->json('liked_by_me', !$wasLiked),
+        ]);
     }
 
     public function navTitle(): string
@@ -109,8 +213,110 @@ class Timeline extends NativeComponent
 
     public function render(): View
     {
-        return view('native.timeline', [
-            'posts' => $this->filteredPosts(),
+        return view('native.timeline');
+    }
+
+    /**
+     * Fetches a page, retrying once with a refreshed token on a 401. Null
+     * means the session is gone (refresh also failed) — caller should
+     * bounce to Login.
+     */
+    private function fetchPage(string $token, ?string $url = null): ?Response
+    {
+        $api = new He4rtApi;
+
+        return $this->withTokenRetry($token, fn (string $t): Response => $api->timeline($t, $url));
+    }
+
+    /**
+     * Runs $makeRequest with the given token, retrying once with a
+     * refreshed token if the first attempt is unauthorized. Null means the
+     * session is gone (refresh also failed) — caller should bounce to
+     * Login.
+     */
+    private function withTokenRetry(string $token, Closure $makeRequest): ?Response
+    {
+        $response = $makeRequest($token);
+
+        if (!$response->unauthorized()) {
+            return $response;
+        }
+
+        $refreshedToken = $this->refreshToken(new He4rtApi, $token);
+
+        if ($refreshedToken === null) {
+            return null;
+        }
+
+        return $makeRequest($refreshedToken);
+    }
+
+    private function bumpReplyCount(string $postId): void
+    {
+        $this->updatePost($postId, [
+            'repliesCount' => $this->findPost($postId)['repliesCount'] + 1,
         ]);
+    }
+
+    private function findPost(string $postId): ?array
+    {
+        foreach ($this->posts as $post) {
+            if ($post['id'] === $postId) {
+                return $post;
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array<string, mixed> $changes */
+    private function updatePost(string $postId, array $changes): void
+    {
+        $this->posts = array_map(
+            fn (array $post): array => $post['id'] === $postId ? [...$post, ...$changes] : $post,
+            $this->posts,
+        );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rawPosts
+     * @return list<array<string, mixed>>
+     */
+    private function mapPosts(array $rawPosts): array
+    {
+        return collect($rawPosts)->map(fn (array $post): array => $this->mapPost($post))->all();
+    }
+
+    /** @param array<string, mixed> $post */
+    private function mapPost(array $post): array
+    {
+        return [
+            'id' => (string) $post['id'],
+            'author' => $post['author']['username'],
+            'avatarUrl' => $post['author']['avatar_url'] ?? null,
+            'timeAgo' => Carbon::parse($post['created_at'])->diffForHumans(),
+            'content' => $post['content'],
+            'image' => $post['images'][0] ?? null,
+            'repliesCount' => $post['replies_count'] ?? 0,
+            'likesCount' => $post['likes_count'] ?? 0,
+            'likedByMe' => $post['liked_by_me'] ?? false,
+        ];
+    }
+
+    /** Null means the token could not be refreshed — caller should log out. */
+    private function refreshToken(He4rtApi $api, string $expiredToken): ?string
+    {
+        $response = $api->refresh($expiredToken);
+
+        if (!$response->successful()) {
+            (new AuthTokenStore)->clear();
+
+            return null;
+        }
+
+        $accessToken = (string) $response->json('access_token');
+        (new AuthTokenStore)->put($accessToken, (int) $response->json('expires_in'));
+
+        return $accessToken;
     }
 }

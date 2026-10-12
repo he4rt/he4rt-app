@@ -44,3 +44,31 @@ expect()->extend('toBeOne', function () {
 | global functions to help you to reduce the number of lines of code in your test files.
 |
 */
+
+/**
+ * @return array<string, mixed> One root timeline post, shaped like
+ *                              TimelinePostResource. Timeline's `id` is a
+ *                              UUID (the model uses HasUuids) — default to
+ *                              a realistic one so tests catch int-vs-string
+ *                              id bugs instead of masking them.
+ */
+function fakeTimelinePost(array $overrides = []): array
+{
+    return array_merge([
+        'id' => '0199a1b2-3c4d-7e5f-8a6b-1234567890ab',
+        'content' => 'Olá, comunidade He4rt!',
+        'images' => [],
+        'author' => [
+            'id' => 10,
+            'username' => 'danielhe4rt',
+            'avatar_url' => 'https://x/avatar.png',
+        ],
+        'pinned' => false,
+        'root_id' => null,
+        'parent_id' => null,
+        'replies_count' => 3,
+        'likes_count' => 12,
+        'liked_by_me' => false,
+        'created_at' => now()->subHour()->toIso8601String(),
+    ], $overrides);
+}
