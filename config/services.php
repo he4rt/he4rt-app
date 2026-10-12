@@ -38,7 +38,7 @@ return [
     ],
 
     'he4rt_api' => [
-        'base_url' => env('HE4RT_API_BASE_URL', 'http://127.0.0.1:8123'),
+        'base_url' => env('HE4RT_API_BASE_URL', 'http://127.0.0.1:8000'),
     ],
 
 ];

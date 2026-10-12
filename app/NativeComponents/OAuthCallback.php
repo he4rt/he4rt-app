@@ -10,16 +10,11 @@ use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
 
 /**
- * Lands here when the OS opens `{scheme}://oauth/{action}` — the deep
- * link the heartdevs.com web OAuth callback redirects to (see
- * He4rt\Identity\Auth\Support\MobileOAuthDeepLink and
- * docs/plans/2026-09-22-api-mobile-jwt.md on that repo).
+ * Lands here when the OS opens `{scheme}://oauth/{action}` — the deep link
+ * heartdevs.com's web OAuth callback redirects to.
  *
- * `{action}` is a route segment ("callback" or "error"); `code`/`error`
- * arrive as query string on the deep link, which NativePHP deliberately
- * does NOT surface as route params (utm-tag style query strings must not
- * leak into {param} bindings) — so we parse them off the raw current URI
- * ourselves instead of relying on $this->param().
+ * `code`/`error` arrive as query string, which NativePHP doesn't surface
+ * as route params — parsed off the raw current URI instead.
  */
 class OAuthCallback extends NativeComponent
 {
@@ -51,10 +46,20 @@ class OAuthCallback extends NativeComponent
             return;
         }
 
-        (new AuthTokenStore)->put(
+        $store = new AuthTokenStore;
+        $stored = $store->put(
             (string) $response->json('access_token'),
             (int) $response->json('expires_in'),
         );
+
+        // Verify the write landed before navigating — a silent failure
+        // here would otherwise surface as an inexplicable bounce to
+        // Login from Perfil, two screens later.
+        if (!$stored || $store->token() === null) {
+            $this->bounceToLogin('Não foi possível salvar sua sessão. Tente novamente.');
+
+            return;
+        }
 
         $this->replace('/home');
     }

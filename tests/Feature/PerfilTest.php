@@ -7,10 +7,6 @@ use App\Support\AuthTokenStore;
 use Illuminate\Support\Facades\Http;
 use Native\Mobile\Testing\Native;
 
-beforeEach(function () {
-    fakeSecureStorage();
-});
-
 it('sets the nav title', function () {
     expect((new Perfil)->navTitle())->toBe('Perfil');
 });

@@ -12,8 +12,6 @@ it('has no nav title', function () {
 });
 
 it('exchanges the code, stores the token and goes home', function () {
-    fakeSecureStorage();
-
     Http::fake([
         '*/api/mobile/auth/exchange' => Http::response([
             'access_token' => 'jwt-token',

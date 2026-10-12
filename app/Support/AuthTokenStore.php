@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-use Native\Mobile\Facades\SecureStorage;
+use App\Models\AuthToken;
+use Throwable;
 
 /**
- * Persists the He4rt API access token in the device keychain/keystore.
+ * Single source of truth for "is the user logged in" — Splash, Perfil and
+ * OAuthCallback go through this instead of touching storage directly.
  *
- * Single source of truth for "is the user logged in" across the app —
- * Splash, Perfil and the OAuth callback all go through this instead of
- * touching SecureStorage directly.
+ * Backed by local SQLite (`auth_tokens` table), not the OS keychain —
+ * SecureStorage needs the paid nativephp/mobile-secure-storage plugin,
+ * which isn't installed. Revisit before shipping anything that needs
+ * hardware-backed storage.
  */
 final class AuthTokenStore
 {
@@ -19,15 +22,22 @@ final class AuthTokenStore
 
     private const EXPIRES_AT_KEY = 'he4rt_access_token_expires_at';
 
-    public function put(string $token, int $expiresInSeconds): void
+    /** @return bool Whether both writes actually succeeded. */
+    public function put(string $token, int $expiresInSeconds): bool
     {
-        SecureStorage::set(self::TOKEN_KEY, $token);
-        SecureStorage::set(self::EXPIRES_AT_KEY, (string) now()->addSeconds($expiresInSeconds)->getTimestamp());
+        try {
+            $this->set(self::TOKEN_KEY, $token);
+            $this->set(self::EXPIRES_AT_KEY, (string) now()->addSeconds($expiresInSeconds)->getTimestamp());
+
+            return true;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     public function token(): ?string
     {
-        return SecureStorage::get(self::TOKEN_KEY);
+        return $this->get(self::TOKEN_KEY);
     }
 
     public function hasToken(): bool
@@ -42,14 +52,23 @@ final class AuthTokenStore
      */
     public function isExpired(): bool
     {
-        $expiresAt = SecureStorage::get(self::EXPIRES_AT_KEY);
+        $expiresAt = $this->get(self::EXPIRES_AT_KEY);
 
         return $expiresAt === null || now()->getTimestamp() >= (int) $expiresAt;
     }
 
     public function clear(): void
     {
-        SecureStorage::delete(self::TOKEN_KEY);
-        SecureStorage::delete(self::EXPIRES_AT_KEY);
+        AuthToken::destroy([self::TOKEN_KEY, self::EXPIRES_AT_KEY]);
+    }
+
+    private function get(string $key): ?string
+    {
+        return AuthToken::find($key)?->value;
+    }
+
+    private function set(string $key, string $value): void
+    {
+        AuthToken::query()->updateOrCreate(['key' => $key], ['value' => $value]);
     }
 }

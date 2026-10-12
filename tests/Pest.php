@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use Native\Mobile\Testing\FakeBridge;
-use Native\Mobile\Testing\Native;
 use Tests\TestCase;
 
 /*
@@ -18,7 +16,7 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)
- // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 
 /*
@@ -46,37 +44,3 @@ expect()->extend('toBeOne', function () {
 | global functions to help you to reduce the number of lines of code in your test files.
 |
 */
-
-/**
- * Simulates the device keychain/keystore for SecureStorage inside a test.
- *
- * FakeBridge records every SecureStorage.{Set,Get,Delete} call but doesn't
- * persist anything on its own — this wires SecureStorage.Get to replay the
- * most recent Set/Delete made for that key, so AuthTokenStore round-trips
- * correctly in tests. Call before Native::visit()/test().
- */
-function fakeSecureStorage(): FakeBridge
-{
-    $bridge = Native::fakeBridge();
-
-    $bridge->respondTo('SecureStorage.Get', function (array $params) use ($bridge): array {
-        $writes = array_filter(
-            $bridge->calls,
-            fn (array $call) => in_array($call['method'], ['SecureStorage.Set', 'SecureStorage.Delete'], true)
-                && ($call['params']['key'] ?? null) === $params['key'],
-        );
-
-        $last = end($writes);
-
-        if ($last === false || $last['method'] === 'SecureStorage.Delete') {
-            return ['value' => null];
-        }
-
-        return ['value' => $last['params']['value']];
-    });
-
-    $bridge->respondTo('SecureStorage.Set', ['success' => true]);
-    $bridge->respondTo('SecureStorage.Delete', ['success' => true]);
-
-    return $bridge;
-}
