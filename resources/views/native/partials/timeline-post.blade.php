@@ -35,7 +35,7 @@
             <icon name="heart" :ios="Ios::Heart" :android="Android::FavoriteBorder" size="15" class="text-theme-on-surface-variant" />
             <text class="text-xs text-theme-on-surface-variant">{{ $post['reactionsCount'] }}</text>
         </row>
-        <pressable @press="startReply({{ $post['id'] }})">
+        <pressable @press="startReply('{{ $post['id'] }}')">
             <row class="items-center gap-1.5">
                 <icon name="bubble.left" :ios="Ios::BubbleLeft" :android="Android::ChatBubbleOutline" size="15" class="text-theme-on-surface-variant" />
                 <text class="text-xs text-theme-on-surface-variant">{{ $post['repliesCount'] }}</text>

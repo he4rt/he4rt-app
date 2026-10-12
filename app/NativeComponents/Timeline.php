@@ -21,17 +21,17 @@ class Timeline extends NativeComponent
     public bool $isLoadingMore = false;
 
     /**
-     * @var list<array{id: int, author: string, avatarUrl: ?string, timeAgo: string, content: string, image: ?string, repliesCount: int, reactionsCount: int}>
+     * @var list<array{id: string, author: string, avatarUrl: ?string, timeAgo: string, content: string, image: ?string, repliesCount: int, reactionsCount: int}>
      */
     public array $posts = [];
 
     /**
-     * Id of the post the reply composer (bottom sheet) is open for, or
-     * null when closed. There's no endpoint to list a post's existing
-     * replies (POST/DELETE only) — composing one just bumps the visible
-     * count, it doesn't render into a thread.
+     * Id (UUID) of the post the reply composer (bottom sheet) is open
+     * for, or null when closed. There's no endpoint to list a post's
+     * existing replies (POST/DELETE only) — composing one just bumps the
+     * visible count, it doesn't render into a thread.
      */
-    public ?int $replyingToPostId = null;
+    public ?string $replyingToPostId = null;
 
     public string $replyContent = '';
 
@@ -105,7 +105,7 @@ class Timeline extends NativeComponent
         $this->nextPageUrl = $response->json('links.next');
     }
 
-    public function startReply(int $postId): void
+    public function startReply(string $postId): void
     {
         $this->replyingToPostId = $postId;
         $this->replyContent = '';
@@ -211,7 +211,7 @@ class Timeline extends NativeComponent
         return $makeRequest($refreshedToken);
     }
 
-    private function bumpReplyCount(int $postId): void
+    private function bumpReplyCount(string $postId): void
     {
         $this->posts = array_map(
             fn (array $post): array => $post['id'] === $postId
@@ -234,7 +234,7 @@ class Timeline extends NativeComponent
     private function mapPost(array $post): array
     {
         return [
-            'id' => $post['id'],
+            'id' => (string) $post['id'],
             'author' => $post['author']['username'],
             'avatarUrl' => $post['author']['avatar_url'] ?? null,
             'timeAgo' => Carbon::parse($post['created_at'])->diffForHumans(),

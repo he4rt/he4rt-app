@@ -45,11 +45,17 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-/** @return array<string, mixed> One root timeline post, shaped like TimelinePostResource. */
+/**
+ * @return array<string, mixed> One root timeline post, shaped like
+ *                              TimelinePostResource. Timeline's `id` is a
+ *                              UUID (the model uses HasUuids) — default to
+ *                              a realistic one so tests catch int-vs-string
+ *                              id bugs instead of masking them.
+ */
 function fakeTimelinePost(array $overrides = []): array
 {
     return array_merge([
-        'id' => 1,
+        'id' => '0199a1b2-3c4d-7e5f-8a6b-1234567890ab',
         'content' => 'Olá, comunidade He4rt!',
         'images' => [],
         'author' => [
