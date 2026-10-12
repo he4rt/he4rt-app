@@ -8,20 +8,13 @@ use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Persists the He4rt API access token on-device.
+ * Single source of truth for "is the user logged in" — Splash, Perfil and
+ * OAuthCallback go through this instead of touching storage directly.
  *
- * Single source of truth for "is the user logged in" across the app —
- * Splash, Perfil and the OAuth callback all go through this instead of
- * touching storage directly.
- *
- * Backed by the app's local SQLite database (`auth_tokens` table), NOT the
- * OS keychain/keystore — `Native\Mobile\Facades\SecureStorage` requires the
- * nativephp/mobile-secure-storage plugin, which is a paid add-on and isn't
- * installed. Calling it here returns BRIDGE_UNAVAILABLE ("the native bridge
- * returned no response") because nothing on the native side answers it.
- * Plain SQLite gets the same on-disk protection as the rest of the app's
- * data, which is an acceptable tradeoff for now — revisit before shipping
- * anything that needs hardware-backed (Secure Enclave) storage.
+ * Backed by local SQLite (`auth_tokens` table), not the OS keychain —
+ * SecureStorage needs the paid nativephp/mobile-secure-storage plugin,
+ * which isn't installed. Revisit before shipping anything that needs
+ * hardware-backed storage.
  */
 final class AuthTokenStore
 {
@@ -29,11 +22,7 @@ final class AuthTokenStore
 
     private const EXPIRES_AT_KEY = 'he4rt_access_token_expires_at';
 
-    /**
-     * @return bool Whether both writes actually succeeded — callers that
-     *              navigate straight to an authenticated screen afterwards
-     *              should check this instead of assuming the write landed.
-     */
+    /** @return bool Whether both writes actually succeeded. */
     public function put(string $token, int $expiresInSeconds): bool
     {
         try {

@@ -13,12 +13,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Key/value store for App\Support\AuthTokenStore. Not the OS
-        // keychain/keystore (that's the nativephp/mobile-secure-storage
-        // plugin — paid add-on, not installed) — plain on-device SQLite,
-        // same disk encryption as the rest of the app's data. Fine for
-        // now; revisit before shipping anything that needs hardware-backed
-        // storage.
+        // Key/value store for App\Support\AuthTokenStore — see its docblock.
         Schema::create('auth_tokens', function (Blueprint $table) {
             $table->string('key')->primary();
             $table->text('value')->nullable();

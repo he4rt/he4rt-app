@@ -23,14 +23,7 @@
             </row>
         @endif
 
-        {{--
-            public/images/{discord,github,twitch}.png — SVGs rasterizados de
-            vendor/owenvoke/blade-fontawesome (Font Awesome Free Brands,
-            CC BY 4.0) no heartdevs.com. Image no EDGE só decodifica raster
-            (Coil no Android, AsyncImage no iOS — nenhum dos dois lê SVG sem
-            um decoder extra que o app não tem), por isso não dá pra apontar
-            direto pro .svg original.
-        --}}
+        {{-- public/images/{discord,github,twitch}.png: rasterizados do Font Awesome Brands (CC BY 4.0) usado no heartdevs.com — EDGE só decodifica raster, não SVG. --}}
         <column class="w-full gap-3">
             <pressable @press="loginWithDiscord" class="w-full">
                 <row class="w-full items-center gap-3 bg-[#5865F2] rounded-[14] px-4 py-3">

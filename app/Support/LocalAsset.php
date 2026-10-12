@@ -7,13 +7,9 @@ namespace App\Support;
 /**
  * A file:// URL for a bundled public/ asset.
  *
- * The native:image element loads its `src` with plain AsyncImage (iOS) /
- * Coil (Android) — neither understands the `php://` scheme NativePHP
- * rewrites APP_URL to on device (that scheme only exists inside a WKWebView
- * via PHPSchemeHandler), so `asset()` resolves to a URL nothing can fetch
- * and the image silently renders blank. `file://` is natively supported by
- * both loaders with no extra wiring, since the embedded PHP runtime and the
- * native renderer share the same on-device filesystem.
+ * `asset()` resolves to `php://`, which native:image's loaders (AsyncImage,
+ * Coil) don't understand — the image just renders blank. `file://` works
+ * natively on both since PHP and the renderer share the device filesystem.
  */
 final class LocalAsset
 {
