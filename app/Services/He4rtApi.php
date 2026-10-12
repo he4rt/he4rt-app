@@ -68,4 +68,15 @@ final class He4rtApi
 
         return Http::withToken($token)->baseUrl($this->baseUrl)->get('/api/mobile/timeline');
     }
+
+    /**
+     * Reply to a root post. Content validation (required, max 5000 chars)
+     * happens server-side.
+     */
+    public function replyToPost(string $token, int $postId, string $content): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->post("/api/mobile/timeline/{$postId}/replies", [
+            'content' => $content,
+        ]);
+    }
 }

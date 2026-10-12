@@ -3,7 +3,7 @@
 
 {{--
     Post real da timeline (GET /api/mobile/timeline no heartdevs.com).
-    Espera $post: author, avatarUrl (nullable), timeAgo, content,
+    Espera $post: id, author, avatarUrl (nullable), timeAgo, content,
     image (nullable, primeira imagem do post), repliesCount, reactionsCount.
     Sem badge de cargo/tags/snippet de código — a API não tem esses campos
     (ao contrário do post mockado da Home, que é só decorativo).
@@ -35,9 +35,11 @@
             <icon name="heart" :ios="Ios::Heart" :android="Android::FavoriteBorder" size="15" class="text-theme-on-surface-variant" />
             <text class="text-xs text-theme-on-surface-variant">{{ $post['reactionsCount'] }}</text>
         </row>
-        <row class="items-center gap-1.5">
-            <icon name="bubble.left" :ios="Ios::BubbleLeft" :android="Android::ChatBubbleOutline" size="15" class="text-theme-on-surface-variant" />
-            <text class="text-xs text-theme-on-surface-variant">{{ $post['repliesCount'] }}</text>
-        </row>
+        <pressable @press="startReply({{ $post['id'] }})">
+            <row class="items-center gap-1.5">
+                <icon name="bubble.left" :ios="Ios::BubbleLeft" :android="Android::ChatBubbleOutline" size="15" class="text-theme-on-surface-variant" />
+                <text class="text-xs text-theme-on-surface-variant">{{ $post['repliesCount'] }}</text>
+            </row>
+        </pressable>
     </row>
 </column>

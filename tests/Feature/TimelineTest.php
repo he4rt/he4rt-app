@@ -166,3 +166,79 @@ it('bounces to login when loading more fails to refresh an expired token', funct
 
     expect((new AuthTokenStore)->token())->toBeNull();
 });
+
+it('opens and closes the reply composer', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response(['data' => [fakeTimelinePost(['id' => 42])]]),
+    ]);
+
+    $component = Native::visit('/timeline')
+        ->call('startReply', 42)
+        ->assertSet('replyingToPostId', 42);
+
+    $component->call('cancelReply')
+        ->assertSet('replyingToPostId', null)
+        ->assertSet('replyContent', '');
+});
+
+it('submits a reply and bumps the visible replies count', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response([
+            'data' => [fakeTimelinePost(['id' => 42, 'replies_count' => 3])],
+        ]),
+        '*/api/mobile/timeline/42/replies' => Http::response(['data' => ['id' => 99]], 201),
+    ]);
+
+    Native::visit('/timeline')
+        ->call('startReply', 42)
+        ->set('replyContent', 'Concordo!')
+        ->call('submitReply')
+        ->assertSet('replyingToPostId', null)
+        ->assertSee('4');
+});
+
+it('shows a validation error without closing the composer', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response(['data' => [fakeTimelinePost(['id' => 42])]]),
+        '*/api/mobile/timeline/42/replies' => Http::response([
+            'errors' => ['content' => ['O campo content é obrigatório.']],
+        ], 422),
+    ]);
+
+    Native::visit('/timeline')
+        ->call('startReply', 42)
+        ->set('replyContent', 'x')
+        ->call('submitReply')
+        ->assertSet('replyingToPostId', 42)
+        ->assertSee('O campo content é obrigatório.');
+});
+
+it('refreshes an expired token and retries the reply', function () {
+    (new AuthTokenStore)->put('expired-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response(['data' => [fakeTimelinePost(['id' => 42])]]),
+        '*/api/mobile/timeline/42/replies' => Http::sequence()
+            ->push(['message' => 'expired'], 401)
+            ->push(['data' => ['id' => 99]], 201),
+        '*/api/mobile/auth/refresh' => Http::response([
+            'access_token' => 'new-token',
+            'token_type' => 'bearer',
+            'expires_in' => 3_600,
+        ]),
+    ]);
+
+    Native::visit('/timeline')
+        ->call('startReply', 42)
+        ->set('replyContent', 'Concordo!')
+        ->call('submitReply')
+        ->assertSet('replyingToPostId', null);
+
+    expect((new AuthTokenStore)->token())->toBe('new-token');
+});

@@ -6,6 +6,7 @@ namespace App\NativeComponents;
 
 use App\Services\He4rtApi;
 use App\Support\AuthTokenStore;
+use Closure;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -23,6 +24,20 @@ class Timeline extends NativeComponent
      * @var list<array{id: int, author: string, avatarUrl: ?string, timeAgo: string, content: string, image: ?string, repliesCount: int, reactionsCount: int}>
      */
     public array $posts = [];
+
+    /**
+     * Id of the post the reply composer (bottom sheet) is open for, or
+     * null when closed. There's no endpoint to list a post's existing
+     * replies (POST/DELETE only) — composing one just bumps the visible
+     * count, it doesn't render into a thread.
+     */
+    public ?int $replyingToPostId = null;
+
+    public string $replyContent = '';
+
+    public bool $isSubmittingReply = false;
+
+    public ?string $replyError = null;
 
     public function mount(): void
     {
@@ -90,6 +105,67 @@ class Timeline extends NativeComponent
         $this->nextPageUrl = $response->json('links.next');
     }
 
+    public function startReply(int $postId): void
+    {
+        $this->replyingToPostId = $postId;
+        $this->replyContent = '';
+        $this->replyError = null;
+    }
+
+    public function cancelReply(): void
+    {
+        $this->replyingToPostId = null;
+        $this->replyContent = '';
+        $this->replyError = null;
+    }
+
+    public function submitReply(): void
+    {
+        if ($this->replyingToPostId === null || mb_trim($this->replyContent) === '') {
+            return;
+        }
+
+        $token = (new AuthTokenStore)->token();
+
+        if ($token === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        $postId = $this->replyingToPostId;
+        $content = $this->replyContent;
+
+        $this->isSubmittingReply = true;
+        $this->replyError = null;
+
+        $api = new He4rtApi;
+        $response = $this->withTokenRetry($token, fn (string $t): Response => $api->replyToPost($t, $postId, $content));
+
+        $this->isSubmittingReply = false;
+
+        if ($response === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        if ($response->status() === 422) {
+            $this->replyError = $response->json('errors.content.0', 'Não foi possível enviar sua resposta.');
+
+            return;
+        }
+
+        if (!$response->successful()) {
+            $this->replyError = 'Não foi possível enviar sua resposta. Tente novamente.';
+
+            return;
+        }
+
+        $this->bumpReplyCount($postId);
+        $this->cancelReply();
+    }
+
     public function navTitle(): string
     {
         return 'Timeline';
@@ -108,19 +184,41 @@ class Timeline extends NativeComponent
     private function fetchPage(string $token, ?string $url = null): ?Response
     {
         $api = new He4rtApi;
-        $response = $api->timeline($token, $url);
+
+        return $this->withTokenRetry($token, fn (string $t): Response => $api->timeline($t, $url));
+    }
+
+    /**
+     * Runs $makeRequest with the given token, retrying once with a
+     * refreshed token if the first attempt is unauthorized. Null means the
+     * session is gone (refresh also failed) — caller should bounce to
+     * Login.
+     */
+    private function withTokenRetry(string $token, Closure $makeRequest): ?Response
+    {
+        $response = $makeRequest($token);
 
         if (!$response->unauthorized()) {
             return $response;
         }
 
-        $refreshedToken = $this->refreshToken($api, $token);
+        $refreshedToken = $this->refreshToken(new He4rtApi, $token);
 
         if ($refreshedToken === null) {
             return null;
         }
 
-        return $api->timeline($refreshedToken, $url);
+        return $makeRequest($refreshedToken);
+    }
+
+    private function bumpReplyCount(int $postId): void
+    {
+        $this->posts = array_map(
+            fn (array $post): array => $post['id'] === $postId
+                ? [...$post, 'repliesCount' => $post['repliesCount'] + 1]
+                : $post,
+            $this->posts,
+        );
     }
 
     /**
