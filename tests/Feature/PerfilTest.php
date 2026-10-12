@@ -20,6 +20,7 @@ it('shows the authenticated user profile', function () {
 
     Http::fake([
         '*/api/mobile/me' => Http::response(['id' => '1', 'username' => 'danielhe4rt', 'avatar_url' => 'https://x/a.png']),
+        '*/api/mobile/profile' => Http::response(['data' => []]),
     ]);
 
     Native::visit('/perfil')->assertSee('danielhe4rt');
@@ -37,6 +38,7 @@ it('refreshes an expired token and retries the request', function () {
             'token_type' => 'bearer',
             'expires_in' => 3_600,
         ]),
+        '*/api/mobile/profile' => Http::response(['data' => []]),
     ]);
 
     Native::visit('/perfil')->assertSee('danielhe4rt');
@@ -62,6 +64,7 @@ it('logs out, clears the token and redirects to login', function () {
 
     Http::fake([
         '*/api/mobile/me' => Http::response(['id' => '1', 'username' => 'danielhe4rt', 'avatar_url' => null]),
+        '*/api/mobile/profile' => Http::response(['data' => []]),
         '*/api/mobile/auth/logout' => Http::response(status: 204),
     ]);
 
