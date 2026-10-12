@@ -95,3 +95,74 @@ it('reloads the feed on pull-to-refresh', function () {
         ->call('refresh')
         ->assertSee('Post novo depois do refresh');
 });
+
+it('shows a load more affordance when there is a next page', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response([
+            'data' => [fakeTimelinePost()],
+            'links' => ['next' => 'http://127.0.0.1:8000/api/mobile/timeline?page=2'],
+        ]),
+    ]);
+
+    Native::visit('/timeline')->assertSee('Carregar mais');
+});
+
+it('hides the load more affordance when there is no next page', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response([
+            'data' => [fakeTimelinePost()],
+            'links' => ['next' => null],
+        ]),
+    ]);
+
+    Native::visit('/timeline')->assertDontSee('Carregar mais');
+});
+
+it('loads the next page and appends it to the feed', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/timeline*' => Http::sequence()
+            ->push([
+                'data' => [fakeTimelinePost(['id' => 1, 'content' => 'Primeira página'])],
+                'links' => ['next' => 'http://127.0.0.1:8000/api/mobile/timeline?page=2'],
+            ])
+            ->push([
+                'data' => [fakeTimelinePost(['id' => 2, 'content' => 'Segunda página'])],
+                'links' => ['next' => null],
+            ]),
+    ]);
+
+    Native::visit('/timeline')
+        ->assertSee('Primeira página')
+        ->call('loadMore')
+        ->assertSee('Primeira página')
+        ->assertSee('Segunda página')
+        ->assertDontSee('Carregar mais');
+});
+
+it('bounces to login when loading more fails to refresh an expired token', function () {
+    (new AuthTokenStore)->put('expired-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/timeline' => Http::response([
+            'data' => [fakeTimelinePost()],
+            'links' => ['next' => 'http://127.0.0.1:8000/api/mobile/timeline?page=2'],
+        ]),
+    ]);
+
+    $component = Native::visit('/timeline')->assertSee('Carregar mais');
+
+    Http::fake([
+        '*/api/mobile/timeline*' => Http::response(['message' => 'expired'], 401),
+        '*/api/mobile/auth/refresh' => Http::response(['message' => 'expired'], 401),
+    ]);
+
+    $component->call('loadMore')->assertReplacedWith('/login');
+
+    expect((new AuthTokenStore)->token())->toBeNull();
+});

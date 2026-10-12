@@ -22,6 +22,16 @@
             @foreach ($posts as $post)
                 @include('native.partials.timeline-post', ['post' => $post])
             @endforeach
+
+            @if ($nextPageUrl)
+                <pressable @press="loadMore" class="w-full items-center p-3">
+                    @if ($isLoadingMore)
+                        <activity-indicator />
+                    @else
+                        <text class="text-sm text-theme-primary" font="medium">Carregar mais</text>
+                    @endif
+                </pressable>
+            @endif
         @endif
     </column>
 </refreshable>

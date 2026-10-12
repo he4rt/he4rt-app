@@ -6,6 +6,7 @@ namespace App\NativeComponents;
 
 use App\Services\He4rtApi;
 use App\Support\AuthTokenStore;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
@@ -13,6 +14,10 @@ use Native\Mobile\Edge\NativeComponent;
 class Timeline extends NativeComponent
 {
     public string $status = 'loading';
+
+    public ?string $nextPageUrl = null;
+
+    public bool $isLoadingMore = false;
 
     /**
      * @var list<array{id: int, author: string, avatarUrl: ?string, timeAgo: string, content: string, image: ?string, repliesCount: int, reactionsCount: int}>
@@ -34,7 +39,55 @@ class Timeline extends NativeComponent
             return;
         }
 
-        $this->loadFeed($token);
+        $response = $this->fetchPage($token);
+
+        if ($response === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        if (!$response->successful()) {
+            $this->status = 'error';
+
+            return;
+        }
+
+        $this->status = 'ok';
+        $this->posts = $this->mapPosts($response->json('data', []));
+        $this->nextPageUrl = $response->json('links.next');
+    }
+
+    public function loadMore(): void
+    {
+        if ($this->nextPageUrl === null || $this->isLoadingMore) {
+            return;
+        }
+
+        $token = (new AuthTokenStore)->token();
+
+        if ($token === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        $this->isLoadingMore = true;
+        $response = $this->fetchPage($token, $this->nextPageUrl);
+        $this->isLoadingMore = false;
+
+        if ($response === null) {
+            $this->replace('/login');
+
+            return;
+        }
+
+        if (!$response->successful()) {
+            return;
+        }
+
+        $this->posts = [...$this->posts, ...$this->mapPosts($response->json('data', []))];
+        $this->nextPageUrl = $response->json('links.next');
     }
 
     public function navTitle(): string
@@ -47,33 +100,36 @@ class Timeline extends NativeComponent
         return view('native.timeline');
     }
 
-    private function loadFeed(string $token): void
+    /**
+     * Fetches a page, retrying once with a refreshed token on a 401. Null
+     * means the session is gone (refresh also failed) — caller should
+     * bounce to Login.
+     */
+    private function fetchPage(string $token, ?string $url = null): ?Response
     {
         $api = new He4rtApi;
-        $response = $api->timeline($token);
+        $response = $api->timeline($token, $url);
 
-        if ($response->unauthorized()) {
-            $token = $this->refreshToken($api, $token);
-
-            if ($token === null) {
-                $this->replace('/login');
-
-                return;
-            }
-
-            $response = $api->timeline($token);
+        if (!$response->unauthorized()) {
+            return $response;
         }
 
-        if (!$response->successful()) {
-            $this->status = 'error';
+        $refreshedToken = $this->refreshToken($api, $token);
 
-            return;
+        if ($refreshedToken === null) {
+            return null;
         }
 
-        $this->status = 'ok';
-        $this->posts = collect($response->json('data', []))
-            ->map(fn (array $post): array => $this->mapPost($post))
-            ->all();
+        return $api->timeline($refreshedToken, $url);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rawPosts
+     * @return list<array<string, mixed>>
+     */
+    private function mapPosts(array $rawPosts): array
+    {
+        return collect($rawPosts)->map(fn (array $post): array => $this->mapPost($post))->all();
     }
 
     /** @param array<string, mixed> $post */

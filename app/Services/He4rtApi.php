@@ -57,10 +57,15 @@ final class He4rtApi
     }
 
     /**
-     * First page of the root timeline posts, newest first.
+     * Root timeline posts, newest first. Pass the previous response's
+     * `links.next` as $url to fetch the following page.
      */
-    public function timeline(string $token): Response
+    public function timeline(string $token, ?string $url = null): Response
     {
+        if ($url !== null) {
+            return Http::withToken($token)->get($url);
+        }
+
         return Http::withToken($token)->baseUrl($this->baseUrl)->get('/api/mobile/timeline');
     }
 }
