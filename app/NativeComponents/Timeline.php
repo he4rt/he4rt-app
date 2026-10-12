@@ -4,102 +4,37 @@ declare(strict_types=1);
 
 namespace App\NativeComponents;
 
+use App\Services\He4rtApi;
+use App\Support\AuthTokenStore;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
 
 class Timeline extends NativeComponent
 {
-    public string $activeFilter = 'todos';
+    public string $status = 'loading';
 
     /**
-     * Mock — a Timeline real vem de docs/plans/2026-09-22-api-mobile-jwt.md
-     * no heartdevs.com (feature "Timeline"), ainda não existe API pra isso.
-     *
-     * @var list<array{author: string, role: ?string, timeAgo: string, body: string, code: ?array{file: string, lang: string, lines: list<string>}, tags: list<string>, likes: int, comments: int, category: string}>
+     * @var list<array{id: int, author: string, avatarUrl: ?string, timeAgo: string, content: string, image: ?string, repliesCount: int, reactionsCount: int}>
      */
-    public array $posts = [
-        [
-            'author' => 'time He4rt',
-            'role' => 'CORE',
-            'timeAgo' => 'há 2h',
-            'body' => 'Refatoramos o pool de conexões do Postgres no gateway da API do heartdevs.com.',
-            'code' => [
-                'file' => 'config/database.php',
-                'lang' => 'php',
-                'lines' => [
-                    "'pool' => ['min' => 5, 'max' => 50],",
-                    '// timeout ajustado pra reduzir o P99',
-                ],
-            ],
-            'tags' => ['#backend', '#postgres', '#performance'],
-            'likes' => 84,
-            'comments' => 23,
-            'category' => 'projetos',
-        ],
-        [
-            'author' => 'maria.dev',
-            'role' => null,
-            'timeAgo' => 'há 5h',
-            'body' => 'A turma de mentoria de Setembro está com vagas abertas! Inscrições abertas até o dia 30.',
-            'code' => null,
-            'tags' => ['#mentoria', '#carreira'],
-            'likes' => 41,
-            'comments' => 12,
-            'category' => 'mentorias',
-        ],
-        [
-            'author' => 'time He4rt',
-            'role' => 'CORE',
-            'timeAgo' => 'ontem',
-            'body' => 'Como fomos de 0 a 9 mil devs na comunidade — um resumo da jornada até aqui.',
-            'code' => null,
-            'tags' => [],
-            'likes' => 156,
-            'comments' => 37,
-            'category' => 'geral',
-        ],
-        [
-            'author' => 'pedro.silva',
-            'role' => null,
-            'timeAgo' => 'há 2 dias',
-            'body' => 'Lancei meu primeiro projeto open source usando Laravel + Livewire. Feedback é bem-vindo.',
-            'code' => null,
-            'tags' => ['#laravel', '#livewire', '#opensource'],
-            'likes' => 62,
-            'comments' => 19,
-            'category' => 'projetos',
-        ],
-        [
-            'author' => 'time He4rt',
-            'role' => 'CORE',
-            'timeAgo' => 'há 3 dias',
-            'body' => 'A He4rt Conf 2025 está confirmada pra Outubro, com inscrições abertas em breve.',
-            'code' => null,
-            'tags' => ['#he4rtconf'],
-            'likes' => 203,
-            'comments' => 58,
-            'category' => 'eventos',
-        ],
-    ];
+    public array $posts = [];
 
-    public function setFilter(string $filter): void
+    public function mount(): void
     {
-        $this->activeFilter = $filter;
+        $this->refresh();
     }
 
-    /**
-     * @return list<array{author: string, role: ?string, timeAgo: string, body: string, code: ?array{file: string, lang: string, lines: list<string>}, tags: list<string>, likes: int, comments: int, category: string}>
-     */
-    public function filteredPosts(): array
+    public function refresh(): void
     {
-        if ($this->activeFilter === 'todos') {
-            return $this->posts;
+        $token = (new AuthTokenStore)->token();
+
+        if ($token === null) {
+            $this->replace('/login');
+
+            return;
         }
 
-        return array_values(array_filter(
-            $this->posts,
-            fn (array $post): bool => $post['category'] === $this->activeFilter,
-        ));
+        $this->loadFeed($token);
     }
 
     public function navTitle(): string
@@ -109,8 +44,67 @@ class Timeline extends NativeComponent
 
     public function render(): View
     {
-        return view('native.timeline', [
-            'posts' => $this->filteredPosts(),
-        ]);
+        return view('native.timeline');
+    }
+
+    private function loadFeed(string $token): void
+    {
+        $api = new He4rtApi;
+        $response = $api->timeline($token);
+
+        if ($response->unauthorized()) {
+            $token = $this->refreshToken($api, $token);
+
+            if ($token === null) {
+                $this->replace('/login');
+
+                return;
+            }
+
+            $response = $api->timeline($token);
+        }
+
+        if (!$response->successful()) {
+            $this->status = 'error';
+
+            return;
+        }
+
+        $this->status = 'ok';
+        $this->posts = collect($response->json('data', []))
+            ->map(fn (array $post): array => $this->mapPost($post))
+            ->all();
+    }
+
+    /** @param array<string, mixed> $post */
+    private function mapPost(array $post): array
+    {
+        return [
+            'id' => $post['id'],
+            'author' => $post['author']['username'],
+            'avatarUrl' => $post['author']['avatar_url'] ?? null,
+            'timeAgo' => Carbon::parse($post['created_at'])->diffForHumans(),
+            'content' => $post['content'],
+            'image' => $post['images'][0] ?? null,
+            'repliesCount' => $post['replies_count'] ?? 0,
+            'reactionsCount' => $post['reactions_count'] ?? 0,
+        ];
+    }
+
+    /** Null means the token could not be refreshed — caller should log out. */
+    private function refreshToken(He4rtApi $api, string $expiredToken): ?string
+    {
+        $response = $api->refresh($expiredToken);
+
+        if (!$response->successful()) {
+            (new AuthTokenStore)->clear();
+
+            return null;
+        }
+
+        $accessToken = (string) $response->json('access_token');
+        (new AuthTokenStore)->put($accessToken, (int) $response->json('expires_in'));
+
+        return $accessToken;
     }
 }

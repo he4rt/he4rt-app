@@ -55,4 +55,12 @@ final class He4rtApi
     {
         return Http::withToken($token)->baseUrl($this->baseUrl)->get('/api/mobile/me');
     }
+
+    /**
+     * First page of the root timeline posts, newest first.
+     */
+    public function timeline(string $token): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->get('/api/mobile/timeline');
+    }
 }
