@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\NativeComponents\Splash;
+use App\Support\AuthTokenStore;
 use Native\Mobile\Testing\Native;
 
 it('has no nav title', function () {
@@ -14,10 +15,7 @@ it('shows the wordmark', function () {
 });
 
 it('replaces itself with home when a token is already stored', function () {
-    $bridge = fakeSecureStorage();
-    $bridge->respondTo('SecureStorage.Get', fn (array $params) => $params['key'] === 'he4rt_access_token'
-        ? ['value' => 'stored-token']
-        : ['value' => null]);
+    (new AuthTokenStore)->put('stored-token', 3_600);
 
     Native::visit('/')
         ->firePoll('finish')

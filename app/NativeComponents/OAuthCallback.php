@@ -8,7 +8,6 @@ use App\Services\He4rtApi;
 use App\Support\AuthTokenStore;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
-use Native\Mobile\Facades\SecureStorage;
 
 /**
  * Lands here when the OS opens `{scheme}://oauth/{action}` — the deep
@@ -59,21 +58,10 @@ class OAuthCallback extends NativeComponent
         );
 
         // Verify the write actually landed before navigating — a silent
-        // keychain write failure here would otherwise surface two screens
-        // later as an inexplicable bounce back to Login from Perfil.
+        // storage failure here would otherwise surface two screens later
+        // as an inexplicable bounce back to Login from Perfil.
         if (!$stored || $store->token() === null) {
-            // TEMPORARY diagnostic — surfaces SecureStorage's real status/
-            // code/message instead of a generic message, to find out why
-            // the keychain write is failing on device. Remove once fixed.
-            $diagnostic = SecureStorage::read('he4rt_access_token');
-
-            $this->bounceToLogin(sprintf(
-                'Não foi possível salvar sua sessão. [set=%s status=%s code=%s msg=%s]',
-                $stored ? 'true' : 'false',
-                $diagnostic->status->value,
-                $diagnostic->code ?? 'null',
-                $diagnostic->message ?? 'null',
-            ));
+            $this->bounceToLogin('Não foi possível salvar sua sessão. Tente novamente.');
 
             return;
         }

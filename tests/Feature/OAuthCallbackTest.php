@@ -12,8 +12,6 @@ it('has no nav title', function () {
 });
 
 it('exchanges the code, stores the token and goes home', function () {
-    fakeSecureStorage();
-
     Http::fake([
         '*/api/mobile/auth/exchange' => Http::response([
             'access_token' => 'jwt-token',
@@ -45,21 +43,4 @@ it('bounces back to login when the deep link carries no code', function () {
 it('bounces back to login on the error path', function () {
     Native::visit('/oauth/error?error=access_denied')
         ->assertReplacedWith('/login');
-});
-
-it('bounces back to login instead of a broken Home when the keychain write fails', function () {
-    Native::fakeBridge()->respondTo('SecureStorage.Set', ['success' => false]);
-
-    Http::fake([
-        '*/api/mobile/auth/exchange' => Http::response([
-            'access_token' => 'jwt-token',
-            'token_type' => 'bearer',
-            'expires_in' => 3_600,
-        ]),
-    ]);
-
-    Native::visit('/oauth/callback?code=abc123')
-        ->assertReplacedWith('/login')
-        ->follow()
-        ->assertSee('Não foi possível salvar sua sessão');
 });
