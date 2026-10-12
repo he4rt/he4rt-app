@@ -75,7 +75,7 @@
                     <text class="text-lg text-theme-on-background font-bold">Skills</text>
                     <row class="flex-wrap gap-2">
                         @foreach ($skills as $skill)
-                            <chip label="{{ $skill }}" selected />
+                            <chip label="{{ $skill }}" selected class="shrink-0" />
                         @endforeach
                     </row>
                 </column>
