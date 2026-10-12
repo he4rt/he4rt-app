@@ -57,6 +57,16 @@ final class He4rtApi
     }
 
     /**
+     * The authenticated user's professional profile — nickname, headline,
+     * skills, work experience, availability. Auto-created empty on first
+     * access (every field nullable/empty) if the user never filled it in.
+     */
+    public function profile(string $token): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->get('/api/mobile/profile');
+    }
+
+    /**
      * Root timeline posts, newest first. Pass the previous response's
      * `links.next` as $url to fetch the following page.
      */

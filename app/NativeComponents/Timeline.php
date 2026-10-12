@@ -6,7 +6,7 @@ namespace App\NativeComponents;
 
 use App\Services\He4rtApi;
 use App\Support\AuthTokenStore;
-use Closure;
+use App\Support\RefreshesExpiredToken;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -14,6 +14,8 @@ use Native\Mobile\Edge\NativeComponent;
 
 class Timeline extends NativeComponent
 {
+    use RefreshesExpiredToken;
+
     public string $status = 'loading';
 
     public ?string $nextPageUrl = null;
@@ -228,29 +230,6 @@ class Timeline extends NativeComponent
         return $this->withTokenRetry($token, fn (string $t): Response => $api->timeline($t, $url));
     }
 
-    /**
-     * Runs $makeRequest with the given token, retrying once with a
-     * refreshed token if the first attempt is unauthorized. Null means the
-     * session is gone (refresh also failed) — caller should bounce to
-     * Login.
-     */
-    private function withTokenRetry(string $token, Closure $makeRequest): ?Response
-    {
-        $response = $makeRequest($token);
-
-        if (!$response->unauthorized()) {
-            return $response;
-        }
-
-        $refreshedToken = $this->refreshToken(new He4rtApi, $token);
-
-        if ($refreshedToken === null) {
-            return null;
-        }
-
-        return $makeRequest($refreshedToken);
-    }
-
     private function bumpReplyCount(string $postId): void
     {
         $this->updatePost($postId, [
@@ -301,22 +280,5 @@ class Timeline extends NativeComponent
             'likesCount' => $post['likes_count'] ?? 0,
             'likedByMe' => $post['liked_by_me'] ?? false,
         ];
-    }
-
-    /** Null means the token could not be refreshed — caller should log out. */
-    private function refreshToken(He4rtApi $api, string $expiredToken): ?string
-    {
-        $response = $api->refresh($expiredToken);
-
-        if (!$response->successful()) {
-            (new AuthTokenStore)->clear();
-
-            return null;
-        }
-
-        $accessToken = (string) $response->json('access_token');
-        (new AuthTokenStore)->put($accessToken, (int) $response->json('expires_in'));
-
-        return $accessToken;
     }
 }
