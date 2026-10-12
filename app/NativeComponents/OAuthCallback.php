@@ -51,10 +51,20 @@ class OAuthCallback extends NativeComponent
             return;
         }
 
-        (new AuthTokenStore)->put(
+        $store = new AuthTokenStore;
+        $stored = $store->put(
             (string) $response->json('access_token'),
             (int) $response->json('expires_in'),
         );
+
+        // Verify the write actually landed before navigating — a silent
+        // keychain write failure here would otherwise surface two screens
+        // later as an inexplicable bounce back to Login from Perfil.
+        if (!$stored || $store->token() === null) {
+            $this->bounceToLogin('Não foi possível salvar sua sessão. Tente novamente.');
+
+            return;
+        }
 
         $this->replace('/home');
     }

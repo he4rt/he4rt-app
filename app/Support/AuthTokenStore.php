@@ -19,10 +19,18 @@ final class AuthTokenStore
 
     private const EXPIRES_AT_KEY = 'he4rt_access_token_expires_at';
 
-    public function put(string $token, int $expiresInSeconds): void
+    /**
+     * @return bool Whether both writes actually succeeded — callers that
+     *              navigate straight to an authenticated screen afterwards
+     *              should check this instead of assuming the keychain
+     *              write landed.
+     */
+    public function put(string $token, int $expiresInSeconds): bool
     {
-        SecureStorage::set(self::TOKEN_KEY, $token);
-        SecureStorage::set(self::EXPIRES_AT_KEY, (string) now()->addSeconds($expiresInSeconds)->getTimestamp());
+        $tokenStored = SecureStorage::set(self::TOKEN_KEY, $token);
+        $expiryStored = SecureStorage::set(self::EXPIRES_AT_KEY, (string) now()->addSeconds($expiresInSeconds)->getTimestamp());
+
+        return $tokenStored && $expiryStored;
     }
 
     public function token(): ?string
