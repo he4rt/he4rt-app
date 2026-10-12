@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-use Illuminate\Support\Facades\DB;
+use App\Models\AuthToken;
 use Throwable;
 
 /**
@@ -59,16 +59,16 @@ final class AuthTokenStore
 
     public function clear(): void
     {
-        DB::table('auth_tokens')->whereIn('key', [self::TOKEN_KEY, self::EXPIRES_AT_KEY])->delete();
+        AuthToken::destroy([self::TOKEN_KEY, self::EXPIRES_AT_KEY]);
     }
 
     private function get(string $key): ?string
     {
-        return DB::table('auth_tokens')->where('key', $key)->value('value');
+        return AuthToken::find($key)?->value;
     }
 
     private function set(string $key, string $value): void
     {
-        DB::table('auth_tokens')->updateOrInsert(['key' => $key], ['value' => $value]);
+        AuthToken::query()->updateOrCreate(['key' => $key], ['value' => $value]);
     }
 }
