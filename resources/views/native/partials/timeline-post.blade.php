@@ -6,8 +6,13 @@
     Espera $post: id, author, avatarUrl (nullable), timeAgo, content,
     image (nullable, primeira imagem do post), repliesCount, likesCount,
     likedByMe. Sem badge de cargo/tags/snippet de código — a API não tem
-    esses campos (ao contrário do post mockado da Home, que é só decorativo).
+    esses campos.
+
+    $interactive (opcional, default true): false renderiza curtir/responder
+    como texto estático, sem @press — usado pelo preview da Home, cujo
+    componente não tem os métodos toggleLike()/startReply().
 --}}
+@php($interactive = $interactive ?? true)
 <column class="w-full gap-3 bg-theme-surface border border-theme-outline-variant/60 rounded-[20] p-4">
     <row class="items-center gap-3">
         @if ($post['avatarUrl'])
@@ -31,22 +36,33 @@
     @endif
 
     <row class="items-center gap-4 mt-1">
-        <pressable @press="toggleLike('{{ $post['id'] }}')">
+        @if ($interactive)
+            <pressable @press="toggleLike('{{ $post['id'] }}')">
+                <row class="items-center gap-1.5">
+                    @if ($post['likedByMe'])
+                        <icon name="heart.fill" :ios="Ios::HeartFill" :android="Android::Favorite" size="15" class="text-theme-destructive" />
+                        <text class="text-xs text-theme-destructive">{{ $post['likesCount'] }}</text>
+                    @else
+                        <icon name="heart" :ios="Ios::Heart" :android="Android::FavoriteBorder" size="15" class="text-theme-on-surface-variant" />
+                        <text class="text-xs text-theme-on-surface-variant">{{ $post['likesCount'] }}</text>
+                    @endif
+                </row>
+            </pressable>
+            <pressable @press="startReply('{{ $post['id'] }}')">
+                <row class="items-center gap-1.5">
+                    <icon name="bubble.left" :ios="Ios::BubbleLeft" :android="Android::ChatBubbleOutline" size="15" class="text-theme-on-surface-variant" />
+                    <text class="text-xs text-theme-on-surface-variant">{{ $post['repliesCount'] }}</text>
+                </row>
+            </pressable>
+        @else
             <row class="items-center gap-1.5">
-                @if ($post['likedByMe'])
-                    <icon name="heart.fill" :ios="Ios::HeartFill" :android="Android::Favorite" size="15" class="text-theme-destructive" />
-                    <text class="text-xs text-theme-destructive">{{ $post['likesCount'] }}</text>
-                @else
-                    <icon name="heart" :ios="Ios::Heart" :android="Android::FavoriteBorder" size="15" class="text-theme-on-surface-variant" />
-                    <text class="text-xs text-theme-on-surface-variant">{{ $post['likesCount'] }}</text>
-                @endif
+                <icon name="{{ $post['likedByMe'] ? 'heart.fill' : 'heart' }}" :ios="$post['likedByMe'] ? Ios::HeartFill : Ios::Heart" :android="$post['likedByMe'] ? Android::Favorite : Android::FavoriteBorder" size="15" class="{{ $post['likedByMe'] ? 'text-theme-destructive' : 'text-theme-on-surface-variant' }}" />
+                <text class="text-xs {{ $post['likedByMe'] ? 'text-theme-destructive' : 'text-theme-on-surface-variant' }}">{{ $post['likesCount'] }}</text>
             </row>
-        </pressable>
-        <pressable @press="startReply('{{ $post['id'] }}')">
             <row class="items-center gap-1.5">
                 <icon name="bubble.left" :ios="Ios::BubbleLeft" :android="Android::ChatBubbleOutline" size="15" class="text-theme-on-surface-variant" />
                 <text class="text-xs text-theme-on-surface-variant">{{ $post['repliesCount'] }}</text>
             </row>
-        </pressable>
+        @endif
     </row>
 </column>
