@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\NativeComponents\EventoDetail;
 use App\NativeComponents\Eventos;
 use App\NativeComponents\Home;
 use App\NativeComponents\Login;
@@ -23,6 +24,7 @@ Route::nativeGroup(layout: TabsLayout::class, routes: function (): void {
     Route::native('/home', Home::class);
     Route::native('/timeline', Timeline::class);
     Route::native('/eventos', Eventos::class);
+    Route::native('/eventos/{eventId}', EventoDetail::class);
     Route::native('/perfil', Perfil::class);
 });
 
