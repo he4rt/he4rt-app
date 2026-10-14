@@ -72,6 +72,39 @@
                 @if ($canCheckIn)
                     <button variant="primary" class="w-full" @press="startCheckIn">Fazer check-in</button>
                 @endif
+
+                {{-- Área da staff — só aparece pra super admin (is_super_admin via GET /api/mobile/me) --}}
+                @if ($isSuperAdmin)
+                    <column class="w-full gap-3 bg-theme-secondary/10 border border-theme-secondary/30 rounded-[18] p-4 mt-2">
+                        <row class="items-center gap-2">
+                            <icon name="shield.fill" :ios="Ios::ShieldFill" :android="Android::AdminPanelSettings" size="16" class="text-theme-secondary" />
+                            <text class="text-sm text-theme-secondary font-bold">Área da staff</text>
+                        </row>
+
+                        @if ($generatedCode)
+                            <column class="w-full items-center gap-2 bg-theme-surface rounded-[14] p-4">
+                                <text class="text-xs text-theme-on-surface-variant">Anuncie esse código pra galera digitar no check-in</text>
+                                <text class="text-4xl text-theme-on-background font-extrabold" font="mono">{{ $generatedCode }}</text>
+                                <text class="text-xs text-theme-on-surface-variant">Válido até {{ $generatedCodeExpiresAtLabel }}</text>
+                                <pressable @press="dismissGeneratedCode">
+                                    <text class="text-sm text-theme-primary" font="medium">Gerar outro</text>
+                                </pressable>
+                            </column>
+                        @else
+                            <row class="items-center gap-2">
+                                <text class="text-xs text-theme-on-surface-variant">Dígitos:</text>
+                                <chip label="4" :selected="$codeDigits === 4" @press="setCodeDigits(4)" />
+                                <chip label="6" :selected="$codeDigits === 6" @press="setCodeDigits(6)" />
+                            </row>
+
+                            <button variant="secondary" class="w-full" :loading="$isGeneratingCode" @press="generateCheckInCode">Gerar código de check-in</button>
+
+                            @if ($generateCodeError)
+                                <text class="text-sm text-theme-destructive">{{ $generateCodeError }}</text>
+                            @endif
+                        @endif
+                    </column>
+                @endif
             @endif
         </column>
     </refreshable>
