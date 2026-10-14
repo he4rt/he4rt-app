@@ -124,3 +124,16 @@ function fakeEventDetail(array $overrides = []): array
         'is_event_full' => false,
     ], $overrides);
 }
+
+/**
+ * @return array<string, mixed> Shaped like GET /api/mobile/me's response.
+ */
+function fakeMe(array $overrides = []): array
+{
+    return array_merge([
+        'id' => '1',
+        'username' => 'danielhe4rt',
+        'avatar_url' => null,
+        'is_super_admin' => false,
+    ], $overrides);
+}

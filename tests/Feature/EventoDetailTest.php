@@ -19,6 +19,7 @@ it('shows the event detail when there is no enrollment yet', function () {
         '*/api/mobile/events/'.EVENTO_ID => Http::response([
             'data' => fakeEventDetail(['title' => 'Workshop: Laravel na prática', 'location' => 'Online']),
         ]),
+        '*/api/mobile/me' => Http::response(fakeMe()),
     ]);
 
     $component = Native::visit('/eventos/'.EVENTO_ID)
@@ -39,6 +40,7 @@ it('shows the real enrollment status when already enrolled', function () {
                 'enrollment' => ['status' => 'confirmed', 'waitlist_position' => null, 'enrolled_at' => now()->toIso8601String(), 'confirmed_at' => now()->toIso8601String(), 'checked_in_at' => null],
             ]),
         ]),
+        '*/api/mobile/me' => Http::response(fakeMe()),
     ]);
 
     Native::visit('/eventos/'.EVENTO_ID)
@@ -54,6 +56,7 @@ it('shows a waiting message for application-based events', function () {
         '*/api/mobile/events/'.EVENTO_ID => Http::response([
             'data' => fakeEventDetail(['enrollment_method' => 'application', 'can_apply' => true, 'can_confirm_presence' => false]),
         ]),
+        '*/api/mobile/me' => Http::response(fakeMe()),
     ]);
 
     Native::visit('/eventos/'.EVENTO_ID)
@@ -68,6 +71,7 @@ it('shows a full-event message instead of the confirm button', function () {
         '*/api/mobile/events/'.EVENTO_ID => Http::response([
             'data' => fakeEventDetail(['is_event_full' => true, 'can_confirm_presence' => false]),
         ]),
+        '*/api/mobile/me' => Http::response(fakeMe()),
     ]);
 
     Native::visit('/eventos/'.EVENTO_ID)
@@ -86,6 +90,7 @@ it('confirms presence and refreshes the enrollment state', function () {
                 'enrollment' => ['status' => 'confirmed', 'waitlist_position' => null, 'enrolled_at' => now()->toIso8601String(), 'confirmed_at' => now()->toIso8601String(), 'checked_in_at' => null],
             ])]),
         '*/api/mobile/events/'.EVENTO_ID.'/enroll' => Http::response(['status' => 'confirmed', 'waitlist_position' => null], 201),
+        '*/api/mobile/me' => Http::response(fakeMe()),
     ]);
 
     Native::visit('/eventos/'.EVENTO_ID)
@@ -100,6 +105,7 @@ it('shows the server error message when enrolling fails', function () {
     Http::fake([
         '*/api/mobile/events/'.EVENTO_ID => Http::response(['data' => fakeEventDetail()]),
         '*/api/mobile/events/'.EVENTO_ID.'/enroll' => Http::response(['message' => 'Este evento já aconteceu.'], 422),
+        '*/api/mobile/me' => Http::response(fakeMe()),
     ]);
 
     Native::visit('/eventos/'.EVENTO_ID)
@@ -117,6 +123,7 @@ it('opens and cancels the check-in composer', function () {
                 'enrollment' => ['status' => 'confirmed', 'waitlist_position' => null, 'enrolled_at' => null, 'confirmed_at' => null, 'checked_in_at' => null],
             ]),
         ]),
+        '*/api/mobile/me' => Http::response(fakeMe()),
     ]);
 
     Native::visit('/eventos/'.EVENTO_ID)
@@ -137,6 +144,7 @@ it('rejects a malformed check-in code before calling the API', function () {
                 'enrollment' => ['status' => 'confirmed', 'waitlist_position' => null, 'enrolled_at' => null, 'confirmed_at' => null, 'checked_in_at' => null],
             ]),
         ]),
+        '*/api/mobile/me' => Http::response(fakeMe()),
     ]);
 
     Native::visit('/eventos/'.EVENTO_ID)
@@ -161,6 +169,7 @@ it('checks in with a valid code and closes the composer', function () {
                 'enrollment' => ['status' => 'checked_in', 'waitlist_position' => null, 'enrolled_at' => null, 'confirmed_at' => null, 'checked_in_at' => now()->toIso8601String()],
             ])]),
         '*/api/mobile/events/'.EVENTO_ID.'/check-in' => Http::response(['event_date' => now()->toDateString(), 'checked_in_at' => now()->toIso8601String()], 201),
+        '*/api/mobile/me' => Http::response(fakeMe()),
     ]);
 
     Native::visit('/eventos/'.EVENTO_ID)
@@ -181,6 +190,7 @@ it('shows the server error message when the check-in code is wrong', function ()
             ]),
         ]),
         '*/api/mobile/events/'.EVENTO_ID.'/check-in' => Http::response(['message' => 'Código inválido ou expirado.'], 422),
+        '*/api/mobile/me' => Http::response(fakeMe()),
     ]);
 
     Native::visit('/eventos/'.EVENTO_ID)
@@ -202,4 +212,69 @@ it('bounces to login when refreshing an expired token fails', function () {
     Native::visit('/eventos/'.EVENTO_ID)->assertReplacedWith('/login');
 
     expect((new AuthTokenStore)->token())->toBeNull();
+});
+
+it('shows the staff area and generates a check-in code for a super admin', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/events/'.EVENTO_ID => Http::response(['data' => fakeEventDetail()]),
+        '*/api/mobile/me' => Http::response(fakeMe(['is_super_admin' => true])),
+        '*/api/mobile/events/'.EVENTO_ID.'/check-in-codes' => Http::response([
+            'code' => '123456',
+            'event_date' => now()->toDateString(),
+            'expires_at' => now()->addHours(2)->toIso8601String(),
+        ], 201),
+    ]);
+
+    Native::visit('/eventos/'.EVENTO_ID)
+        ->assertSee('Área da staff')
+        ->press('generateCheckInCode')
+        ->assertSee('123456');
+});
+
+it('hides the staff area for a regular user', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/events/'.EVENTO_ID => Http::response(['data' => fakeEventDetail()]),
+        '*/api/mobile/me' => Http::response(fakeMe()),
+    ]);
+
+    Native::visit('/eventos/'.EVENTO_ID)->assertDontSee('Área da staff');
+});
+
+it('shows an error when generating the check-in code fails', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/events/'.EVENTO_ID => Http::response(['data' => fakeEventDetail()]),
+        '*/api/mobile/me' => Http::response(fakeMe(['is_super_admin' => true])),
+        '*/api/mobile/events/'.EVENTO_ID.'/check-in-codes' => Http::response(['message' => 'forbidden'], 403),
+    ]);
+
+    Native::visit('/eventos/'.EVENTO_ID)
+        ->press('generateCheckInCode')
+        ->assertSee('Não foi possível gerar o código. Tente novamente.');
+});
+
+it('generates a 4-digit code when that digit count is selected', function () {
+    (new AuthTokenStore)->put('valid-token', 3_600);
+
+    Http::fake([
+        '*/api/mobile/events/'.EVENTO_ID => Http::response(['data' => fakeEventDetail()]),
+        '*/api/mobile/me' => Http::response(fakeMe(['is_super_admin' => true])),
+        '*/api/mobile/events/'.EVENTO_ID.'/check-in-codes' => Http::response([
+            'code' => '1234',
+            'event_date' => now()->toDateString(),
+            'expires_at' => now()->addHours(2)->toIso8601String(),
+        ], 201),
+    ]);
+
+    Native::visit('/eventos/'.EVENTO_ID)
+        ->press('setCodeDigits(4)')
+        ->press('generateCheckInCode')
+        ->assertSee('1234');
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'check-in-codes') && $request['digits'] === 4);
 });

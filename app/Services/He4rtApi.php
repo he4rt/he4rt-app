@@ -138,4 +138,16 @@ final class He4rtApi
             'code' => $code,
         ]);
     }
+
+    /**
+     * Staff-only (super admin — enforced server-side, 403 otherwise).
+     * Every field has a sensible default; today is only used as
+     * event_date when the event is actually happening today.
+     */
+    public function generateCheckInCode(string $token, string $eventId, int $digits = 6): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->post("/api/mobile/events/{$eventId}/check-in-codes", [
+            'digits' => $digits,
+        ]);
+    }
 }
