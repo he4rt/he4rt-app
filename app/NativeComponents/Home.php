@@ -6,6 +6,7 @@ namespace App\NativeComponents;
 
 use App\Services\He4rtApi;
 use App\Support\AuthTokenStore;
+use App\Support\EventDateFormatter;
 use App\Support\RefreshesExpiredToken;
 use App\Support\TimelinePostMapper;
 use Illuminate\Http\Client\Response;
@@ -18,17 +19,11 @@ class Home extends NativeComponent
 {
     use RefreshesExpiredToken;
 
-    private const WEEKDAY_ABBREVIATIONS = [
-        0 => 'Dom', 1 => 'Seg', 2 => 'Ter', 3 => 'Qua', 4 => 'Qui', 5 => 'Sex', 6 => 'Sáb',
-    ];
-
-    private const MONTH_ABBREVIATIONS = [
-        1 => 'Jan', 2 => 'Fev', 3 => 'Mar', 4 => 'Abr',
-        5 => 'Mai', 6 => 'Jun', 7 => 'Jul', 8 => 'Ago',
-        9 => 'Set', 10 => 'Out', 11 => 'Nov', 12 => 'Dez',
-    ];
-
-    /** Mirrors He4rt\Events\Enrollment\Enums\EnrollmentStatus's labels. */
+    /**
+     * Collapsed on purpose — this is a compact teaser pill, not the full
+     * status (Eventos' list/detail screens use EventPresenter for that).
+     * Mirrors He4rt\Events\Enrollment\Enums\EnrollmentStatus's labels.
+     */
     private const ENROLLMENT_LABELS = [
         'pending' => 'Inscrição pendente',
         'confirmed' => 'Inscrito',
@@ -185,18 +180,9 @@ class Home extends NativeComponent
         return [
             'id' => (string) $event['id'],
             'title' => $event['title'],
-            'when' => $this->formatEventWhen($event['starts_at']),
+            'when' => EventDateFormatter::when($event['starts_at']),
             'status' => self::ENROLLMENT_LABELS[$enrollmentStatus] ?? 'Em breve',
             'statusToken' => self::ENROLLMENT_TOKENS[$enrollmentStatus] ?? 'primary',
         ];
-    }
-
-    private function formatEventWhen(string $startsAt): string
-    {
-        $parsed = Carbon::parse($startsAt);
-        $weekday = self::WEEKDAY_ABBREVIATIONS[$parsed->dayOfWeek];
-        $month = self::MONTH_ABBREVIATIONS[$parsed->month];
-
-        return "{$weekday}, {$parsed->day} {$month} · {$parsed->format('H')}h";
     }
 }

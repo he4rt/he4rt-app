@@ -110,4 +110,32 @@ final class He4rtApi
     {
         return Http::withToken($token)->baseUrl($this->baseUrl)->get('/api/mobile/events');
     }
+
+    /**
+     * Full detail of one event — enrollment policy, the current user's
+     * enrollment (if any), and the can_apply/can_confirm_presence/
+     * is_event_full booleans the web panel itself uses to pick an action.
+     */
+    public function event(string $token, string $eventId): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->get("/api/mobile/events/{$eventId}");
+    }
+
+    /**
+     * RSVP or apply, depending on the event's enrollment method — the
+     * same action decides the resulting status (confirmed, waitlisted or
+     * pending) server-side.
+     */
+    public function enrollInEvent(string $token, string $eventId): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->post("/api/mobile/events/{$eventId}/enroll");
+    }
+
+    /** Numeric code check-in — 4 or 6 digits, validated server-side. */
+    public function checkIntoEvent(string $token, string $eventId, string $code): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->post("/api/mobile/events/{$eventId}/check-in", [
+            'code' => $code,
+        ]);
+    }
 }

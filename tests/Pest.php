@@ -93,3 +93,34 @@ function fakeEvent(array $overrides = []): array
         'enrollment_status' => null,
     ], $overrides);
 }
+
+/**
+ * @return array<string, mixed> One event, shaped like EventDetailResource
+ *                              (GET /api/mobile/events/{event}) — adds the
+ *                              enrollment policy/state fields that
+ *                              EventResource (the list) doesn't carry.
+ */
+function fakeEventDetail(array $overrides = []): array
+{
+    $enrollment = array_key_exists('enrollment', $overrides) ? $overrides['enrollment'] : null;
+    unset($overrides['enrollment']);
+
+    return array_merge([
+        'id' => '0199b2c3-4d5e-7f60-9a7b-234567890abc',
+        'slug' => 'workshop-laravel-na-pratica',
+        'title' => 'Workshop: Laravel na prática',
+        'description' => 'Mão na massa com Laravel.',
+        'event_type' => 'workshop',
+        'location' => 'Online',
+        'starts_at' => now()->addDays(3)->toIso8601String(),
+        'ends_at' => now()->addDays(3)->addHours(2)->toIso8601String(),
+        'status' => 'published',
+        'enrollment_method' => 'rsvp',
+        'capacity' => null,
+        'has_waitlist' => false,
+        'enrollment' => $enrollment,
+        'can_apply' => false,
+        'can_confirm_presence' => $enrollment === null,
+        'is_event_full' => false,
+    ], $overrides);
+}
