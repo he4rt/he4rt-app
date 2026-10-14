@@ -101,4 +101,13 @@ final class He4rtApi
     {
         return Http::withToken($token)->baseUrl($this->baseUrl)->delete("/api/mobile/timeline/{$postId}/like");
     }
+
+    /**
+     * Events visible to participants (published, completed or cancelled),
+     * closest first, with the current user's enrollment status on each.
+     */
+    public function events(string $token): Response
+    {
+        return Http::withToken($token)->baseUrl($this->baseUrl)->get('/api/mobile/events');
+    }
 }

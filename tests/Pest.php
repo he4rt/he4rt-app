@@ -72,3 +72,24 @@ function fakeTimelinePost(array $overrides = []): array
         'created_at' => now()->subHour()->toIso8601String(),
     ], $overrides);
 }
+
+/**
+ * @return array<string, mixed> One event, shaped like EventResource.
+ *                              Event's `id` is a UUID too, same reasoning
+ *                              as fakeTimelinePost().
+ */
+function fakeEvent(array $overrides = []): array
+{
+    return array_merge([
+        'id' => '0199b2c3-4d5e-7f60-9a7b-234567890abc',
+        'slug' => 'workshop-laravel-na-pratica',
+        'title' => 'Workshop: Laravel na prática',
+        'description' => 'Mão na massa com Laravel.',
+        'event_type' => 'workshop',
+        'location' => 'Online',
+        'starts_at' => now()->addDays(3)->toIso8601String(),
+        'ends_at' => now()->addDays(3)->addHours(2)->toIso8601String(),
+        'status' => 'published',
+        'enrollment_status' => null,
+    ], $overrides);
+}

@@ -54,27 +54,33 @@
                 </pressable>
             </row>
 
-            <carousel variant="uncontained" item-width="240" item-spacing="12" class="w-full">
-                @foreach ($upcomingEvents as $event)
-                    <pressable @press="goToEventos">
-                        <column class="w-[240] h-[172] justify-between bg-theme-surface border border-theme-outline-variant/60 rounded-[20] p-4">
-                            <column class="gap-3">
-                                <row class="items-center gap-1.5 bg-theme-{{ $event['statusToken'] }}/15 rounded-full px-2.5 py-1 self-start">
-                                    <circle class="w-1.5 h-1.5 bg-theme-{{ $event['statusToken'] }}" />
-                                    <text class="text-xs text-theme-{{ $event['statusToken'] }} font-semibold">{{ $event['status'] }}</text>
+            @if ($eventsStatus === 'error')
+                <text class="text-sm text-theme-destructive">Não foi possível carregar os próximos eventos.</text>
+            @elseif ($eventsStatus === 'ok' && empty($upcomingEvents))
+                <text class="text-sm text-theme-on-surface-variant">Nenhum evento agendado no momento.</text>
+            @elseif (!empty($upcomingEvents))
+                <carousel variant="uncontained" item-width="240" item-spacing="12" class="w-full">
+                    @foreach ($upcomingEvents as $event)
+                        <pressable @press="goToEventos">
+                            <column class="w-[240] h-[172] justify-between bg-theme-surface border border-theme-outline-variant/60 rounded-[20] p-4">
+                                <column class="gap-3">
+                                    <row class="items-center gap-1.5 bg-theme-{{ $event['statusToken'] }}/15 rounded-full px-2.5 py-1 self-start">
+                                        <circle class="w-1.5 h-1.5 bg-theme-{{ $event['statusToken'] }}" />
+                                        <text class="text-xs text-theme-{{ $event['statusToken'] }} font-semibold">{{ $event['status'] }}</text>
+                                    </row>
+
+                                    <text class="text-base text-theme-on-surface font-bold" max-lines="2">{{ $event['title'] }}</text>
+                                </column>
+
+                                <row class="items-center gap-1.5">
+                                    <icon name="calendar" :ios="Ios::Calendar" :android="Android::Event" size="13" class="text-theme-on-surface-variant" />
+                                    <text class="text-xs text-theme-on-surface-variant">{{ $event['when'] }}</text>
                                 </row>
-
-                                <text class="text-base text-theme-on-surface font-bold" max-lines="2">{{ $event['title'] }}</text>
                             </column>
-
-                            <row class="items-center gap-1.5">
-                                <icon name="calendar" :ios="Ios::Calendar" :android="Android::Event" size="13" class="text-theme-on-surface-variant" />
-                                <text class="text-xs text-theme-on-surface-variant">{{ $event['when'] }}</text>
-                            </row>
-                        </column>
-                    </pressable>
-                @endforeach
-            </carousel>
+                        </pressable>
+                    @endforeach
+                </carousel>
+            @endif
         </column>
 
         {{-- Timeline / comunidade --}}
@@ -89,21 +95,28 @@
                 </pressable>
             </row>
 
-            {{-- Post em destaque — mesmo card reutilizável da Timeline --}}
-            @include('native.partials.post-card', ['post' => $featuredPost])
+            @if ($postsStatus === 'error')
+                <text class="text-sm text-theme-destructive">Não foi possível carregar a timeline.</text>
+            @elseif ($postsStatus === 'ok' && $featuredPost === null)
+                <text class="text-sm text-theme-on-surface-variant">Ainda não tem nada na timeline.</text>
+            @else
+                @if ($featuredPost)
+                    @include('native.partials.timeline-post', ['post' => $featuredPost, 'interactive' => false])
+                @endif
 
-            <column class="w-full gap-2">
-                @foreach ($latestPosts as $post)
-                    <list-item
-                        headline="{{ $post['title'] }}"
-                        supporting="{{ $post['author'] }} · {{ $post['timeAgo'] }}"
-                        leadingIcon="bubble.left.fill"
-                        :leadingIconIos="Ios::BubbleLeftFill"
-                        :leadingIconAndroid="Android::Forum"
-                        class="w-full bg-theme-surface border border-theme-outline-variant/40 rounded-[16] px-3"
-                    />
-                @endforeach
-            </column>
+                <column class="w-full gap-2">
+                    @foreach ($latestPosts as $post)
+                        <list-item
+                            headline="{{ $post['title'] }}"
+                            supporting="{{ $post['author'] }} · {{ $post['timeAgo'] }}"
+                            leadingIcon="bubble.left.fill"
+                            :leadingIconIos="Ios::BubbleLeftFill"
+                            :leadingIconAndroid="Android::Forum"
+                            class="w-full bg-theme-surface border border-theme-outline-variant/40 rounded-[16] px-3"
+                        />
+                    @endforeach
+                </column>
+            @endif
         </column>
 
         <button variant="primary" class="w-full mt-2" @press="goToTimeline">Ver timeline completa</button>
